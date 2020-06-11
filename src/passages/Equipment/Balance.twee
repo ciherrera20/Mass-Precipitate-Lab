@@ -1,0 +1,13 @@
+:: Balance
+<<nobr>>
+
+  <<if $balance_items.length === 0>>
+	  <<set $balance_measurement = 0>>
+	  <<print There is currently nothing on the balance>>
+  <</if>>
+  
+<</nobr>>
+Back to [[Equipment]]
+<img src="./resources/images/balance.jpg">
+The balance currently reads <<print $balance_measurement + $balance_rest_mass>> grams
+<<link "Zero balance" Balance>><<set $balance_rest_mass = -1 * $balance_measurement>><</link>>
