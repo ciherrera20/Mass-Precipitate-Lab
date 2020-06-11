@@ -1,0 +1,13 @@
+:: introduction [nobr]
+
+<<if !$init>>
+    <<set $init = false>>
+<</if>>
+
+<h1>Introduction</h1>
+
+Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of the precipitate resulting from the reaction between Ca(NO~~3~~)~~2~~ and Na~~2~~CO~~3~~.
+<br>
+[[Proceed to equipment|equipment]]
+<br>
+[[View lab procedures|procedures]]

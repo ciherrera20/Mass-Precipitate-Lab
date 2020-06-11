@@ -13,6 +13,12 @@ FROM = ./src
 
 PROJECT = Mass-Precipitate-Lab
 
+# Recursive wildcard function to search a directory
+#rwildcard = $(wildcard $(addsuffix $2, $1)) $(foreach d, $(wildcard $(addsuffix *, $1)), $(call rwildcard, $d/, $2))
+
+# Constructs source file locations
+#SRCFILES := $(filter %.twee, $(call rwildcard, $(FROM), *.twee))
+
 TFLAGS = --log-files -l -o $(PROJECT).html
 
 # typing 'make' will invoke the first target entry in the makefile 

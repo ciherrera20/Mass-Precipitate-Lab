@@ -1,30 +1,32 @@
-:: Equipment
-<<nobr>>
+:: equipment [nobr]
 
-  <<if !$init>>
-	  <<set $balance_rest_mass = random(-5, 5)>>
-	  <<set $balance_items = []>>
-	  <<set $vial1 = {
-	  		rest_mass: 3, 
-			content_mass: 0,
-			get_mass: function() {
-				return this.rest_mass + this.content_mass;
-			}
-		}>>
-	  <<set $vial2 = {
-	  		rest_mass: 3, 
-			content_mass: 0,
-			get_mass: function() {
-				return this.rest_mass + this.content_mass;
-			}
-		}>>
-	  <<set $init = true>>
-  <</if>>
+<<if !$init>>
+	<<set $balance_rest_mass = random(-5, 5)>>
+	<<set $balance_items = []>>
+	<<set $vial1 = {
+		rest_mass: 3, 
+		content_mass: 0,
+		get_mass: function() {
+			return this.rest_mass + this.content_mass;
+		}
+	}>>
+	<<set $vial2 = {
+		rest_mass: 3, 
+		content_mass: 0,
+		get_mass: function() {
+			return this.rest_mass + this.content_mass;
+		}
+	}>>
+	<<set $init = true>>
+<</if>>
   
-<</nobr>>
-Back to [[Mass Precipitate Lab]]
-You have the following equipment:
-[[A balance|Balance]]
-[[2 small vials|Vials]]
-[[A bottle of Calcium Nitrate|Calcium Nitrate]]
-[[A bottle of Sodium Carbonate|Sodium Carbonate]]
+<h1>Equipment</h1>
+
+Back to [[introduction]]
+<br>
+
+You have the following equipment:<br>
+[[A balance|balance]]<br>
+[[2 small vials|vials]]<br>
+[[A bottle of Calcium Nitrate|calcium_nitrate]]<br>
+[[A bottle of Sodium Carbonate|sodium_carbonate]]<br>
