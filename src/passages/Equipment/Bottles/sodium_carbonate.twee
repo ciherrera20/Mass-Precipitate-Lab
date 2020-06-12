@@ -1,0 +1,24 @@
+:: sodium_carbonate [nobr]
+
+<h1>Sodium Carbonate Bottle</h1>
+
+Back to [[equipment]]
+<br>
+
+<img src="./resources/images/sodium_carbonate_bottle.png">
+<br>
+
+Currently contains ____ ml of Sodium Carbonate
+<br>
+<<if !$vial1.containsSodiumCarbonate>>
+    <<link "Pour 25 ml into Vial 1" vial1>><<run $sodiumCarbonateBottle.pourIntoVial($vial1)>><</link>>
+<<else>>
+    Vial 1 already contains sodium carbonate
+<</if>>
+<br>
+<<if !$vial2.containsSodiumCarbonate>>
+    <<link "Pour 25 ml into Vial 2" vial2>><<run $sodiumCarbonateBottle.pourIntoVial($vial2)>><</link>>
+<<else>>
+    Vial 2 already contains sodium carbonate
+<</if>>
+<br>

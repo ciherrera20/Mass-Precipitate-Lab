@@ -1,24 +1,4 @@
 :: equipment [nobr]
-
-<<if !$init>>
-	<<set $balance_rest_mass = random(-5, 5)>>
-	<<set $balance_items = []>>
-	<<set $vial1 = {
-		rest_mass: 3, 
-		content_mass: 0,
-		get_mass: function() {
-			return this.rest_mass + this.content_mass;
-		}
-	}>>
-	<<set $vial2 = {
-		rest_mass: 3, 
-		content_mass: 0,
-		get_mass: function() {
-			return this.rest_mass + this.content_mass;
-		}
-	}>>
-	<<set $init = true>>
-<</if>>
   
 <h1>Equipment</h1>
 

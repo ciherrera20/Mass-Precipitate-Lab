@@ -100,75 +100,222 @@ var saveAs=saveAs||navigator.msSaveBlob&&navigator.msSaveBlob.bind(navigator)||f
 		<div id="init-lacking">Your browser lacks required capabilities. Please upgrade it or switch to another to continue.</div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="8" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">// Creates an object from a prototype and constructor
-let createObject = function(prototype, constructor) {
+	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="8" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">.in {
+    text-indent: 2em;
+    margin: 0px;
+}</style><script role="script" id="twine-user-script" type="text/twine-javascript">// Creates an object from a prototype and constructor
+// This probably doesn't work with Twine
+/*let createObject = function(prototype, constructor) {
 	let that = Object.create(prototype);
 
 	that.super = prototype;
 	prototype.constructor = constructor;
 
 	return that;
+}*/
+
+// Deep copies keys from the object from to the object to
+function cloneKeys(from, to) {
+	Object.keys(from).forEach(function(key) {
+		to[key] = clone(from[key]);
+	});
+	return to;
+}
+
+// Shallow copies keys from the object from to the object to
+function assignKeys(from, to) {
+	Object.keys(from).forEach(function(key) {
+		to[key] = from[key];
+	});
+	return to;
 }
 
 // Balance scope
 {
-	let BalanceTemplate = Object.create(null);
+	let BalanceTemplate = {};
 	
+	// Get the mass currently measured by the balance
 	BalanceTemplate.getMass = function() {
-		return this.restMass + this.items.reduce(function(acc, item) {
-			return acc += item.getMass();
+		return this.restMass + this.itemKeys.reduce(function(acc, itemKey) {
+			return acc += State.variables[itemKey].getMass();
 		}, 0);
 	}
 	
+	// Set the current mass to the balance's new zero
 	BalanceTemplate.zero = function() {
 		this.restMass = -(this.getMass() - this.restMass);
 	}
 	
-	BalanceTemplate.addItem = function(item) {
-		this.items.push(item);
+	// Add an item onto the balance
+	BalanceTemplate.addItemKey = function(itemKey) {
+		this.itemKeys.push(itemKey);
 	}
 	
-	BalanceTemplate.removeItem = function(item) {
-		var index = this.items.indexOf(item);
+	BalanceTemplate.getItemKeyIndex = function(itemKey) {
+		return this.itemKeys.indexOf(itemKey);
+	}
+
+	// Remove an item from the balance
+	BalanceTemplate.removeItemKey = function(itemKey) {
+		var index = this.itemKeys.indexOf(itemKey);
 		if (index != -1) {
 			return this.removeIndex(index);
 		}
 		return null;
 	}
 	
+	// Remove an item given its index from the balance
 	BalanceTemplate.removeIndex = function(index) {
-			if (index < 0 || index >= this.items.length) {
-				return null;	
-			}
-			return this.items[index];
+		console.log("Removing", index);
+		if (index < 0 || index >= this.itemKeys.length) {
+			return null;	
+		}
+		this.itemKeys.splice(index, 1);
+		return this.itemKeys[index];
+	}
+
+	BalanceTemplate.getItemDisplayName = function(index) {
+		return State.variables[this.itemKeys[index]].displayName;
+	}
+
+	BalanceTemplate.clone = function() {
+		return cloneKeys(this, Object.create(BalanceTemplate));
+	}
+
+	BalanceTemplate.toJSON = function() {
+		return JSON.reviveWrapper('Balance.fromObj($ReviveData$)', cloneKeys(this, {}));
 	}
 	
 	var Balance = function(restMass) {
-		if (this.constructor === Balance) {
+		if (this && this.constructor === Balance) {
 			return Balance(...arguments);
 		}
-		let that = createObject(BalanceTemplate, Balance);
+		let that = Object.create(BalanceTemplate);
 		
 		that.restMass = restMass;
-		that.items = [];
+		that.itemKeys = [];
 		
 		return that;
 	}
+
+	Balance.fromObj = function(obj) {
+		return assignKeys(obj, Object.create(BalanceTemplate));
+	}
+}
+
+// Bottle scope
+{
+	let BottleTemplate = {};
+
+	BottleTemplate.pourIntoVial = function(vial) {
+		if (this.getContent() === "calciumNitrate") {
+			if (vial.containsCalciumNitrate) {
+				return false;
+			} else {
+				vial.containsCalciumNitrate = true;
+				return true;
+			}
+		} else if (this.getContent() === "sodiumCarbonate") {
+			if (vial.containsSodiumCarbonate) {
+				return false;
+			} else {
+				vial.containsSodiumCarbonate = true;
+				return true;
+			}
+		}
+	}
+
+	BottleTemplate.clone = function() {
+		return Bottle(this.displayName, this.getContent());
+	}
+
+	BottleTemplate.toJSON = function() {
+		return JSON.reviveWrapper('Bottle({0}, {1})', this.displayName, this.getContent());
+	}
+
+	let Bottle = function(displayName, content) {
+		if (this && this.constructor === Bottle) {
+			return Bottle(...arguments);
+		}
+		let that = Object.create(BottleTemplate);
+
+		that.getContent = function() {
+			return content;
+		}
+
+		return that;
+	}
+
+	var calciumNitrateBottle = Bottle("Calcium Nitrate Bottle", "calciumNitrate");
+	var sodiumCarbonateBottle = Bottle("Sodium Carbonate Bottle", "sodiumCarbonate");
 }
 
 // Vial scope
 {
-	let VialTemplate = Object.create(null);
-		
-	var Vial = function() {
-		if (this.constructor === Vial) {
+	let VialTemplate = {};
+
+	VialTemplate.pourIntoVial = function(vial) {
+		if (this.containsSodiumCarbonate && vial.containsSodiumCarbonate) {
+			return false;
+		}
+		if (this.containsCalciumNitrate && vial.containsCalciumNitrate) {
+			return false;
+		}
+
+		vial.containsCalciumNitrate = vial.containsCalciumNitrate || this.containsCalciumNitrate;
+		vial.containsSodiumCarbonate = vial.containsSodiumCarbonate || this.containsSodiumCarbonate;
+		this.containsCalciumNitrate = false;
+		this.containsSodiumCarbonate = false;
+
+		return true;
+	}
+
+	VialTemplate.getMass = function() {
+		let mass = 5;
+		if (this.containsCalciumNitrate) {
+			mass += 24.41;
+		}
+		if (this.containsSodiumCarbonate) {
+			mass += 25.265;
+		}
+		return mass;
+	}
+
+	VialTemplate.containsPrecipitate = function() {
+		return this.containsCalciumNitrate && this.containsSodiumCarbonate;
+	}
+
+	VialTemplate.clone = function() {
+		return cloneKeys(this, Object.create(VialTemplate));
+	}
+
+	VialTemplate.toJSON = function() {
+		return JSON.reviveWrapper('Vial.fromObj($ReviveData$)', cloneKeys(this, {}));
+	}
+
+	var Vial = function(displayName) {
+		if (this && this.constructor === Vial) {
 			return Vial(...arguments);
 		}
-		let that = createObject(VialTemplate, Vial);
-		
+		let that = Object.create(VialTemplate);
+
+		that.displayName = displayName;
+		that.containsCalciumNitrate = false;
+		that.containsSodiumCarbonate = false;
+
 		return that;
 	}
-}</script><tw-passagedata pid="1" name="calcium_nitrate" tags="nobr" position="100,100" size="100,100">&lt;h1&gt;Calcium Nitrate Bottle&lt;/h1&gt;
+
+	Vial.fromObj = function(obj) {
+		return assignKeys(obj, Object.create(VialTemplate));
+	}
+}
+
+State.variables.balance = Balance(Math.floor((Math.random() * 11) - 5));
+State.variables.calciumNitrateBottle = calciumNitrateBottle;
+State.variables.sodiumCarbonateBottle = sodiumCarbonateBottle;
+State.variables.vial1 = Vial("Vial 1");
+State.variables.vial2 = Vial("Vial 2");</script><tw-passagedata pid="1" name="calcium_nitrate" tags="nobr" position="100,100" size="100,100">&lt;h1&gt;Calcium Nitrate Bottle&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -178,9 +325,17 @@ Back to [[equipment]]
 
 Currently contains ____ ml of Calcium Nitrate
 &lt;br&gt;
-Pour into Vial 1
+&lt;&lt;if !$vial1.containsCalciumNitrate&gt;&gt;
+    &lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $calciumNitrateBottle.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    Vial 1 already contains calcium nitrate
+&lt;&lt;/if&gt;&gt;
 &lt;br&gt;
-Pour into Vial 2</tw-passagedata><tw-passagedata pid="2" name="sodium_carbonate" tags="nobr" position="225,100" size="100,100">&lt;h1&gt;Sodium Carbonate Bottle&lt;/h1&gt;
+&lt;&lt;if !$vial2.containsCalciumNitrate&gt;&gt;
+    &lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $calciumNitrateBottle.pourIntoVial($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    Vial 2 already contains calcium nitrate
+&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="2" name="sodium_carbonate" tags="nobr" position="225,100" size="100,100">&lt;h1&gt;Sodium Carbonate Bottle&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -190,9 +345,17 @@ Back to [[equipment]]
 
 Currently contains ____ ml of Sodium Carbonate
 &lt;br&gt;
-Pour into Vial 1
+&lt;&lt;if !$vial1.containsSodiumCarbonate&gt;&gt;
+    &lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $sodiumCarbonateBottle.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    Vial 1 already contains sodium carbonate
+&lt;&lt;/if&gt;&gt;
 &lt;br&gt;
-Pour into Vial 2
+&lt;&lt;if !$vial2.containsSodiumCarbonate&gt;&gt;
+    &lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $sodiumCarbonateBottle.pourIntoVial($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    Vial 2 already contains sodium carbonate
+&lt;&lt;/if&gt;&gt;
 &lt;br&gt;</tw-passagedata><tw-passagedata pid="3" name="vial1" tags="nobr" position="350,100" size="100,100">&lt;h1&gt;Vial 1&lt;/h1&gt;
 
 Back to [[equipment]]
@@ -203,9 +366,29 @@ Back to [[vials]]
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
 
-Place on balance
+&lt;&lt;if $vial1.containsCalciumNitrate || $vial1.containsSodiumCarbonate&gt;&gt;
+    &lt;&lt;if $vial1.containsCalciumNitrate&gt;&gt;
+        &lt;&lt;print &quot;Contains 25 ml of calcium nitrate&lt;br&gt;&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+    &lt;&lt;if $vial1.containsSodiumCarbonate&gt;&gt;
+        &lt;&lt;print &quot;Contains 25 ml of sodium carbonate&lt;br&gt;&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+    &lt;&lt;if $vial1.containsCalciumNitrate &amp;&amp; $vial1.containsSodiumCarbonate&gt;&gt;
+        &lt;&lt;print &quot;A precipitate has formed!&lt;br&gt;&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;print &quot;Currently empty&lt;br&gt;&quot;&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+
 &lt;br&gt;
-Empty into Vial 2
+&lt;&lt;set _i = $balance.getItemKeyIndex(&quot;vial1&quot;)&gt;&gt;
+&lt;&lt;if _i === -1&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.addItemKey(&quot;vial1&quot;)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;link &quot;Remove from balance&quot; vial1&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;
+&lt;&lt;link &quot;Empty into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial1.pourIntoVial($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;br&gt;</tw-passagedata><tw-passagedata pid="4" name="vial2" tags="nobr" position="475,100" size="100,100">&lt;h1&gt;Vial 2&lt;/h1&gt;
 
 Back to [[equipment]]
@@ -216,9 +399,29 @@ Back to [[vials]]
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
 
-Place on balance
+&lt;&lt;if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate&gt;&gt;
+    &lt;&lt;if $vial2.containsCalciumNitrate&gt;&gt;
+        &lt;&lt;print &quot;Contains 25 ml of calcium nitrate&lt;br&gt;&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+    &lt;&lt;if $vial2.containsSodiumCarbonate&gt;&gt;
+        &lt;&lt;print &quot;Contains 25 ml of sodium carbonate&lt;br&gt;&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+    &lt;&lt;if $vial2.containsCalciumNitrate &amp;&amp; $vial2.containsSodiumCarbonate&gt;&gt;
+        &lt;&lt;print &quot;A precipitate has formed!&lt;br&gt;&quot;&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;print &quot;Currently empty&lt;br&gt;&quot;&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+
 &lt;br&gt;
-Empty into Vial 1
+&lt;&lt;set _i = $balance.getItemKeyIndex(&quot;vial2&quot;)&gt;&gt;
+&lt;&lt;if _i === -1&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.addItemKey(&quot;vial2&quot;)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;link &quot;Remove from balance&quot; vial2&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;
+&lt;&lt;link &quot;Empty into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial2.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;br&gt;</tw-passagedata><tw-passagedata pid="5" name="vials" tags="nobr" position="600,100" size="100,100">&lt;h1&gt;Vials&lt;/h1&gt;
 
 Back to [[equipment]]
@@ -235,34 +438,20 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/balance.jpg&quot;&gt;
 &lt;br&gt;
 
-&lt;&lt;if $balance_items.length === 0&gt;&gt;
-  &lt;&lt;set $balance_measurement = 0&gt;&gt;
-  &lt;&lt;print &quot;There is currently nothing on the balance&lt;br&gt;&quot;&gt;&gt;
+&lt;&lt;if $balance.itemKeys.length === 0&gt;&gt;
+  There is currently nothing on the balance&lt;br&gt;
+&lt;&lt;else&gt;&gt;
+  The balance has on it:
+  &lt;&lt;for _i = 0; _i &lt; $balance.itemKeys.length; _i++&gt;&gt;
+    &lt;&lt;capture _i&gt;&gt;
+      &lt;p class=&quot;in&quot;&gt;&lt;&lt;= $balance.getItemDisplayName(_i)&gt;&gt; - &lt;&lt;link &quot;remove&quot; balance&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/p&gt;
+    &lt;&lt;/capture&gt;&gt;
+  &lt;&lt;/for&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 
-The balance currently reads &lt;&lt;print $balance_measurement + $balance_rest_mass&gt;&gt; grams
+The balance currently reads &lt;&lt;print $balance.getMass()&gt;&gt; grams
 &lt;br&gt;
-&lt;&lt;link &quot;Zero balance&quot; balance&gt;&gt;&lt;&lt;set $balance_rest_mass = -1 * $balance_measurement&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="equipment" tags="nobr" position="850,100" size="100,100">&lt;&lt;if !$init&gt;&gt;
-	&lt;&lt;set $balance_rest_mass = random(-5, 5)&gt;&gt;
-	&lt;&lt;set $balance_items = []&gt;&gt;
-	&lt;&lt;set $vial1 = {
-		rest_mass: 3, 
-		content_mass: 0,
-		get_mass: function() {
-			return this.rest_mass + this.content_mass;
-		}
-	}&gt;&gt;
-	&lt;&lt;set $vial2 = {
-		rest_mass: 3, 
-		content_mass: 0,
-		get_mass: function() {
-			return this.rest_mass + this.content_mass;
-		}
-	}&gt;&gt;
-	&lt;&lt;set $init = true&gt;&gt;
-&lt;&lt;/if&gt;&gt;
-  
-&lt;h1&gt;Equipment&lt;/h1&gt;
+&lt;&lt;link &quot;Zero balance&quot; balance&gt;&gt;&lt;&lt;run $balance.zero()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="equipment" tags="nobr" position="850,100" size="100,100">&lt;h1&gt;Equipment&lt;/h1&gt;
 
 Back to [[introduction]]
 &lt;br&gt;
@@ -271,11 +460,7 @@ You have the following equipment:&lt;br&gt;
 [[A balance|balance]]&lt;br&gt;
 [[2 small vials|vials]]&lt;br&gt;
 [[A bottle of Calcium Nitrate|calcium_nitrate]]&lt;br&gt;
-[[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;</tw-passagedata><tw-passagedata pid="8" name="introduction" tags="nobr" position="975,100" size="100,100">&lt;&lt;if !$init&gt;&gt;
-    &lt;&lt;set $init = false&gt;&gt;
-&lt;&lt;/if&gt;&gt;
-
-&lt;h1&gt;Introduction&lt;/h1&gt;
+[[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;</tw-passagedata><tw-passagedata pid="8" name="introduction" tags="nobr" position="975,100" size="100,100">&lt;h1&gt;Introduction&lt;/h1&gt;
 
 Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of the precipitate resulting from the reaction between Ca(NO~~3~~)~~2~~ and Na~~2~~CO~~3~~.
 &lt;br&gt;

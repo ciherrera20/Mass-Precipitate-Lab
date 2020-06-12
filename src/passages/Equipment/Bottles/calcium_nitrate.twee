@@ -10,6 +10,14 @@ Back to [[equipment]]
 
 Currently contains ____ ml of Calcium Nitrate
 <br>
-Pour into Vial 1
+<<if !$vial1.containsCalciumNitrate>>
+    <<link "Pour 25 ml into Vial 1" vial1>><<run $calciumNitrateBottle.pourIntoVial($vial1)>><</link>>
+<<else>>
+    Vial 1 already contains calcium nitrate
+<</if>>
 <br>
-Pour into Vial 2
+<<if !$vial2.containsCalciumNitrate>>
+    <<link "Pour 25 ml into Vial 2" vial2>><<run $calciumNitrateBottle.pourIntoVial($vial2)>><</link>>
+<<else>>
+    Vial 2 already contains calcium nitrate
+<</if>>

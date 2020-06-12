@@ -10,7 +10,27 @@ Back to [[vials]]
 <img src="./resources/images/vial.jpg" width="100px" height="100px">
 <br>
 
-Place on balance
+<<if $vial1.containsCalciumNitrate || $vial1.containsSodiumCarbonate>>
+    <<if $vial1.containsCalciumNitrate>>
+        <<print "Contains 25 ml of calcium nitrate<br>">>
+    <</if>>
+    <<if $vial1.containsSodiumCarbonate>>
+        <<print "Contains 25 ml of sodium carbonate<br>">>
+    <</if>>
+    <<if $vial1.containsCalciumNitrate && $vial1.containsSodiumCarbonate>>
+        <<print "A precipitate has formed!<br>">>
+    <</if>>
+<<else>>
+    <<print "Currently empty<br>">>
+<</if>>
+
 <br>
-Empty into Vial 2
+<<set _i = $balance.getItemKeyIndex("vial1")>>
+<<if _i === -1>>
+    <<link "Place on balance" balance>><<run $balance.addItemKey("vial1")>><</link>>
+<<else>>
+    <<link "Remove from balance" vial1>><<run $balance.removeIndex(_i)>><</link>>
+<</if>>
+<br>
+<<link "Empty into Vial 2" vial2>><<run $vial1.pourIntoVial($vial2)>><</link>>
 <br>
