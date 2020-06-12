@@ -30,5 +30,7 @@ Back to [[equipment]]
     <<link "Remove from balance" vial2>><<run $balance.removeIndex(_i)>><</link>>
 <</if>>
 <br>
-<<link "Empty into Vial 1" vial1>><<run $vial2.pourIntoVial($vial1)>><</link>>
+<<if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate>>
+    <<link "Empty into Vial 1" vial1>><<run $vial2.pourIntoVial($vial1)>><</link>>
+<</if>>
 <br>
