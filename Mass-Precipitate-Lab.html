@@ -100,7 +100,7 @@ var saveAs=saveAs||navigator.msSaveBlob&&navigator.msSaveBlob.bind(navigator)||f
 		<div id="init-lacking">Your browser lacks required capabilities. Please upgrade it or switch to another to continue.</div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="8" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">.in {
+	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="7" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">.in {
     text-indent: 2em;
     margin: 0px;
 }</style><script role="script" id="twine-user-script" type="text/twine-javascript">// Creates an object from a prototype and constructor
@@ -360,8 +360,6 @@ Currently contains ____ ml of Sodium Carbonate
 
 Back to [[equipment]]
 &lt;br&gt;
-Back to [[vials]]
-&lt;br&gt;
 
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
@@ -393,8 +391,6 @@ Back to [[vials]]
 
 Back to [[equipment]]
 &lt;br&gt;
-Back to [[vials]]
-&lt;br&gt;
 
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
@@ -422,15 +418,7 @@ Back to [[vials]]
 &lt;&lt;/if&gt;&gt;
 &lt;br&gt;
 &lt;&lt;link &quot;Empty into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial2.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;br&gt;</tw-passagedata><tw-passagedata pid="5" name="vials" tags="nobr" position="600,100" size="100,100">&lt;h1&gt;Vials&lt;/h1&gt;
-
-Back to [[equipment]]
-&lt;br&gt;
-You have two vials:
-&lt;br&gt;
-[[Vial 1|vial1]]
-&lt;br&gt;
-[[Vial 2|vial2]]</tw-passagedata><tw-passagedata pid="6" name="balance" tags="nobr" position="725,100" size="100,100">&lt;h1&gt;Balance&lt;/h1&gt;
+&lt;br&gt;</tw-passagedata><tw-passagedata pid="5" name="balance" tags="nobr" position="600,100" size="100,100">&lt;h1&gt;Balance&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -451,22 +439,24 @@ Back to [[equipment]]
 
 The balance currently reads &lt;&lt;print $balance.getMass()&gt;&gt; grams
 &lt;br&gt;
-&lt;&lt;link &quot;Zero balance&quot; balance&gt;&gt;&lt;&lt;run $balance.zero()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="equipment" tags="nobr" position="850,100" size="100,100">&lt;h1&gt;Equipment&lt;/h1&gt;
+&lt;&lt;link &quot;Zero balance&quot; balance&gt;&gt;&lt;&lt;run $balance.zero()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="equipment" tags="nobr" position="725,100" size="100,100">&lt;h1&gt;Equipment&lt;/h1&gt;
 
 Back to [[introduction]]
 &lt;br&gt;
 
 You have the following equipment:&lt;br&gt;
 [[A balance|balance]]&lt;br&gt;
-[[2 small vials|vials]]&lt;br&gt;
+2 small vials:&lt;br&gt;
+&lt;p class=&quot;in&quot;&gt;[[Vial 1|vial1]]&lt;/p&gt;
+&lt;p class=&quot;in&quot;&gt;[[Vial 2|vial2]]&lt;/p&gt;
 [[A bottle of Calcium Nitrate|calcium_nitrate]]&lt;br&gt;
-[[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;</tw-passagedata><tw-passagedata pid="8" name="introduction" tags="nobr" position="975,100" size="100,100">&lt;h1&gt;Introduction&lt;/h1&gt;
+[[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;</tw-passagedata><tw-passagedata pid="7" name="introduction" tags="nobr" position="850,100" size="100,100">&lt;h1&gt;Introduction&lt;/h1&gt;
 
 Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of the precipitate resulting from the reaction between Ca(NO~~3~~)~~2~~ and Na~~2~~CO~~3~~.
 &lt;br&gt;
 [[Proceed to equipment|equipment]]
 &lt;br&gt;
-[[View lab procedures|procedures]]</tw-passagedata><tw-passagedata pid="9" name="procedures" tags="nobr" position="1100,100" size="100,100">&lt;h1&gt;Lab Procedures&lt;/h1&gt;
+[[View lab procedures|procedures]]</tw-passagedata><tw-passagedata pid="8" name="procedures" tags="nobr" position="975,100" size="100,100">&lt;h1&gt;Lab Procedures&lt;/h1&gt;
 
 Back to [[introduction]]
 &lt;br&gt;
