@@ -5,10 +5,10 @@
 Back to [[equipment]]
 <br>
 
-<img src="./resources/images/sodium_carbonate_bottle.png">
+<img src="./resources/images/sodium_carbonate_bottle.png" width="15%" height="15%">
 <br>
 
-Currently contains ____ ml of Sodium Carbonate
+Currently contains <<= $sodiumCarbonateBottle.volume>> ml of Sodium Carbonate
 <br>
 <<if !$vial1.containsSodiumCarbonate>>
     <<link "Pour 25 ml into Vial 1" vial1>><<run $sodiumCarbonateBottle.pourIntoVial($vial1)>><</link>>

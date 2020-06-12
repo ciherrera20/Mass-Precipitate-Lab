@@ -153,6 +153,7 @@ function assignKeys(from, to) {
 				return false;
 			} else {
 				vial.containsCalciumNitrate = true;
+				this.volume -= 25;
 				return true;
 			}
 		} else if (this.getContent() === "sodiumCarbonate") {
@@ -160,25 +161,25 @@ function assignKeys(from, to) {
 				return false;
 			} else {
 				vial.containsSodiumCarbonate = true;
+				this.volume -= 25;
 				return true;
 			}
 		}
 	}
 
 	BottleTemplate.clone = function() {
-		return Bottle(this.displayName, this.getContent());
+		return Bottle(this.displayName, this.getContent(), this.volume);
 	}
 
 	BottleTemplate.toObj = function() {
-		return {displayName: this.displayName, content: this.content};
+		return {displayName: this.displayName, content: this.getContent(), volume: this.volume};
 	}
 
 	BottleTemplate.toJSON = function() {
-		console.log("Bottle to JSON");
 		return JSON.reviveWrapper('setup.Bottle.fromObj($ReviveData$)', this.toObj());
 	}
 
-	let Bottle = function(displayName, content) {
+	let Bottle = function(displayName, content, volume) {
 		if (this && this.constructor === Bottle) {
 			return Bottle(...arguments);
 		}
@@ -188,17 +189,18 @@ function assignKeys(from, to) {
 		that.getContent = function() {
 			return content;
 		}
+		that.volume = volume;
 
 		return that;
 	}
 	setup.Bottle = Bottle;
 
 	Bottle.fromObj = function(obj) {
-		return Bottle(obj.displayName, obj.content);
+		return Bottle(obj.displayName, obj.content, obj.volume);
 	}
 
-	var calciumNitrateBottle = Bottle("Calcium Nitrate Bottle", "calciumNitrate");
-	var sodiumCarbonateBottle = Bottle("Sodium Carbonate Bottle", "sodiumCarbonate");
+	var calciumNitrateBottle = Bottle("Calcium Nitrate Bottle", "calciumNitrate", 300);
+	var sodiumCarbonateBottle = Bottle("Sodium Carbonate Bottle", "sodiumCarbonate", 300);
 }
 
 // Vial scope
