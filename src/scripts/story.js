@@ -70,73 +70,123 @@ function assignKeys(from, to) {
 
 //State.variables.testObj = TestObj("test value 1", "test value 2");
 
+// SCVariable scope
+{
+	let SCVariableTemplate = {};
+
+	SCVariableTemplate.getKey = function() {
+		return this.key;
+	}
+
+	SCVariableTemplate.getVar = function() {
+		return State.variables[this.key];
+	}
+
+	SCVariableTemplate.clone = function() {
+		return cloneKeys(this, Object.create(Object.getPrototypeOf(this)));
+	}
+
+	SCVariableTemplate.toObj = function() {
+		return cloneKeys(this, {});
+	}
+
+	// Needs to be overridden
+	SCVariableTemplate.toJSON = function() {
+		return JSON.reviveWrapper("setup.SCVariable.fromObj($ReviveData$)", this.toObj());
+	}
+
+	var SCVariable = function(key) {
+		if (this && this.constructor === SCVariable) {
+			return SCVariable(...arguments);
+		}
+		let that = Object.create(SCVariableTemplate);
+
+		that.key = key;
+		State.variables[key] = that;
+
+		return that;
+	}
+	setup.SCVariable = SCVariable;
+
+	SCVariable.template = SCVariableTemplate;
+
+	// Needs to be overridden
+	SCVariable.fromObj = function(obj) {
+		return assignKeys(obj, Object.create(SCVariableTemplate));
+	}
+
+	SCVariable.addVar = function(obj) {
+		State.variables[obj.key] = obj;
+	}
+
+	SCVariable.getVar = function(key) {
+		return State.variables[key];
+	}
+}
+
 // Balance scope
 {
-	let BalanceTemplate = {};
-	
-	// Get the mass currently measured by the balance
+	let BalanceTemplate = Object.create(SCVariable.template);
+
 	BalanceTemplate.getMass = function() {
-		return this.restMass + this.itemKeys.reduce(function(acc, itemKey) {
-			return acc += State.variables[itemKey].getMass();
+		return this.restMass + this.items.reduce(function(acc, item) {
+			return acc += SCVariable.getVar(item).getMass();
 		}, 0);
 	}
-	
-	// Set the current mass to the balance's new zero
+
 	BalanceTemplate.zero = function() {
 		this.restMass = -(this.getMass() - this.restMass);
 	}
-	
-	// Add an item onto the balance
-	BalanceTemplate.addItemKey = function(itemKey) {
-		this.itemKeys.push(itemKey);
-	}
-	
-	BalanceTemplate.getItemKeyIndex = function(itemKey) {
-		return this.itemKeys.indexOf(itemKey);
+
+	BalanceTemplate.addItem = function(item) {
+		this.items.push(item.getKey());
 	}
 
-	// Remove an item from the balance
-	BalanceTemplate.removeItemKey = function(itemKey) {
-		var index = this.itemKeys.indexOf(itemKey);
+	BalanceTemplate.getItemIndex = function(item) {
+		return this.items.indexOf(item.getKey());
+	}
+
+	BalanceTemplate.removeItem = function(item) {
+		var index = this.getItemIndex(item);
 		if (index != -1) {
 			return this.removeIndex(index);
 		}
-		return null;
+		return null;		
 	}
-	
-	// Remove an item given its index from the balance
-	BalanceTemplate.removeIndex = function(index) {
-		if (index < 0 || index >= this.itemKeys.length) {
+
+	BalanceTemplate.removeIndex = function() {
+		if (index < 0 || index >= this.items.length) {
 			return null;	
 		}
-		this.itemKeys.splice(index, 1);
-		return this.itemKeys[index];
+		this.items.splice(index, 1);
+		return this.items[index];
 	}
 
 	BalanceTemplate.getItemDisplayName = function(index) {
-		return State.variables[this.itemKeys[index]].displayName;
-	}
-
-	BalanceTemplate.clone = function() {
-		return cloneKeys(this, Object.create(BalanceTemplate));
+		return SCVariable.getVar(this.items[index]).displayName;
 	}
 
 	BalanceTemplate.toJSON = function() {
-		return JSON.reviveWrapper('setup.Balance.fromObj($ReviveData$)', cloneKeys(this, {}));
+		return JSON.reviveWrapper('setup.Balance.fromObj($ReviveData$)', this.toObj());
 	}
-	
-	var Balance = function(restMass) {
+
+	var Balance = function(key, restMass) {
 		if (this && this.constructor === Balance) {
 			return Balance(...arguments);
 		}
 		let that = Object.create(BalanceTemplate);
 		
+		that.key = key;
 		that.restMass = restMass;
-		that.itemKeys = [];
+		that.items = [];
 		
+		console.log(that);
+
 		return that;
 	}
 	setup.Balance = Balance;
+
+	Balance.template = BalanceTemplate;
 
 	Balance.fromObj = function(obj) {
 		return assignKeys(obj, Object.create(BalanceTemplate));
@@ -145,10 +195,10 @@ function assignKeys(from, to) {
 
 // Bottle scope
 {
-	let BottleTemplate = {};
+	let BottleTemplate = Object.create(SCVariable.template);
 
 	BottleTemplate.pourIntoVial = function(vial) {
-		if (this.getContent() === "calciumNitrate") {
+		if (this.key === "calciumNitrateBottle") {
 			if (vial.containsCalciumNitrate) {
 				return false;
 			} else {
@@ -156,7 +206,7 @@ function assignKeys(from, to) {
 				this.volume -= 25;
 				return true;
 			}
-		} else if (this.getContent() === "sodiumCarbonate") {
+		} else if (this.key === "sodiumCarbonateBottle") {
 			if (vial.containsSodiumCarbonate) {
 				return false;
 			} else {
@@ -167,45 +217,37 @@ function assignKeys(from, to) {
 		}
 	}
 
-	BottleTemplate.clone = function() {
-		return Bottle(this.displayName, this.getContent(), this.volume);
-	}
-
-	BottleTemplate.toObj = function() {
-		return {displayName: this.displayName, content: this.getContent(), volume: this.volume};
-	}
-
 	BottleTemplate.toJSON = function() {
 		return JSON.reviveWrapper('setup.Bottle.fromObj($ReviveData$)', this.toObj());
 	}
 
-	let Bottle = function(displayName, content, volume) {
+	let Bottle = function(key, displayName, volume) {
 		if (this && this.constructor === Bottle) {
 			return Bottle(...arguments);
 		}
 		let that = Object.create(BottleTemplate);
 
+		that.key = key;
 		that.displayName = displayName;
-		that.getContent = function() {
-			return content;
-		}
 		that.volume = volume;
 
 		return that;
 	}
 	setup.Bottle = Bottle;
 
+	Bottle.template = BottleTemplate;
+
 	Bottle.fromObj = function(obj) {
-		return Bottle(obj.displayName, obj.content, obj.volume);
+		return assignKeys(obj, Object.create(BottleTemplate));
 	}
 
-	var calciumNitrateBottle = Bottle("Calcium Nitrate Bottle", "calciumNitrate", 300);
-	var sodiumCarbonateBottle = Bottle("Sodium Carbonate Bottle", "sodiumCarbonate", 300);
+	var calciumNitrateBottle = Bottle("calciumNitrateBottle", "Calcium Nitrate Bottle", 300);
+	var sodiumCarbonateBottle = Bottle("sodiumCarbonateBottle", "Sodium Carbonate Bottle", 300);
 }
 
 // Vial scope
 {
-	let VialTemplate = {};
+	let VialTemplate = Object.create(SCVariable.template);
 
 	VialTemplate.pourIntoVial = function(vial) {
 		if (this.containsSodiumCarbonate && vial.containsSodiumCarbonate) {
@@ -238,20 +280,17 @@ function assignKeys(from, to) {
 		return this.containsCalciumNitrate && this.containsSodiumCarbonate;
 	}
 
-	VialTemplate.clone = function() {
-		return cloneKeys(this, Object.create(VialTemplate));
-	}
-
 	VialTemplate.toJSON = function() {
-		return JSON.reviveWrapper('setup.Vial.fromObj($ReviveData$)', cloneKeys(this, {}));
+		return JSON.reviveWrapper('setup.Vial.fromObj($ReviveData$)', this.toObj());
 	}
 
-	var Vial = function(displayName) {
+	var Vial = function(key, displayName) {
 		if (this && this.constructor === Vial) {
 			return Vial(...arguments);
 		}
 		let that = Object.create(VialTemplate);
 
+		that.key = key;
 		that.displayName = displayName;
 		that.containsCalciumNitrate = false;
 		that.containsSodiumCarbonate = false;
@@ -260,13 +299,15 @@ function assignKeys(from, to) {
 	}
 	setup.Vial = Vial;
 
+	Vial.template = VialTemplate;
+
 	Vial.fromObj = function(obj) {
 		return assignKeys(obj, Object.create(VialTemplate));
 	}
 }
 
-State.variables.balance = Balance(Math.floor((Math.random() * 11) - 5));
-State.variables.calciumNitrateBottle = calciumNitrateBottle;
-State.variables.sodiumCarbonateBottle = sodiumCarbonateBottle;
-State.variables.vial1 = Vial("Vial 1");
-State.variables.vial2 = Vial("Vial 2");
+SCVariable.addVar(Balance("balance", Math.floor((Math.random() * 11) - 5)));
+SCVariable.addVar(calciumNitrateBottle);
+SCVariable.addVar(sodiumCarbonateBottle);
+SCVariable.addVar(Vial("vial1", "Vial 1"));
+SCVariable.addVar(Vial("vial2", "Vial 2"));

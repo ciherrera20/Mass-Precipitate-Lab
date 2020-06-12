@@ -23,9 +23,9 @@ Back to [[equipment]]
 <</if>>
 
 <br>
-<<set _i = $balance.getItemKeyIndex("vial2")>>
+<<set _i = $balance.getItemIndex($vial2)>>
 <<if _i === -1>>
-    <<link "Place on balance" balance>><<run $balance.addItemKey("vial2")>><</link>>
+    <<link "Place on balance" balance>><<run $balance.addItem($vial2)>><</link>>
 <<else>>
     <<link "Remove from balance" vial2>><<run $balance.removeIndex(_i)>><</link>>
 <</if>>

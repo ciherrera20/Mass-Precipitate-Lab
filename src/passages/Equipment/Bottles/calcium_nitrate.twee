@@ -5,7 +5,7 @@
 Back to [[equipment]]
 <br>
 
-<img src="./resources/images/calcium_nitrate_bottle.png" width="15%" height="15%">
+<img src="./resources/images/calcium_nitrate_bottle.PNG" width="15%" height="15%">
 <br>
 
 Currently contains <<= $calciumNitrateBottle.volume>> ml of Calcium Nitrate
