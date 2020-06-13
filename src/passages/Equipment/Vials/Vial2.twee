@@ -22,7 +22,6 @@ Back to [[equipment]]
     <<print "Currently empty<br>">>
 <</if>>
 
-<br>
 <<set _i = $balance.getItemIndex($vial2)>>
 <<if _i === -1>>
     <<link "Place on balance" balance>><<run $balance.addItem($vial2)>><</link>>
