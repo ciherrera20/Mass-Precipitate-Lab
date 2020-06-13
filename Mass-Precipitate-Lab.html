@@ -227,6 +227,22 @@ function assignKeys(from, to) {
 	SCVariable.getVar = function(key) {
 		return State.variables[key];
 	}
+
+	SCVariable.toJSONFactory = function(constructorName) {
+		if (!setup[constructorName]) {
+			throw new Error("Constructor must be a property on the setup object");
+		}
+
+		return function() {
+			return JSON.reviveWrapper('setup.' + constructorName + '.fromObj($ReviveData$)', this.toObj());
+		}
+	}
+
+	SCVariable.fromObjFactory = function(prototype) {
+		return function(obj) {
+			return assignKeys(obj, Object.create(prototype));
+		}
+	}
 }
 
 // Balance scope
@@ -284,8 +300,6 @@ function assignKeys(from, to) {
 		that.key = key;
 		that.restMass = restMass;
 		that.items = [];
-		
-		console.log(that);
 
 		return that;
 	}
@@ -411,213 +425,47 @@ function assignKeys(from, to) {
 	}
 }
 
+// API scope
+{
+	let APITemplate = Object.create(SCVariable.template);
+
+	APITemplate.get = function() {
+		return window.SugarCube;
+	}
+
+	APITemplate.log = function() {
+		console.log(...arguments);
+	}
+
+	APITemplate.eval = function(code) {
+		return eval(code);
+	}
+	
+	let API = function(key) {
+		if (this && this.constructor === API) {
+			return API(...arguments);
+		}
+		let that = Object.create(APITemplate);
+
+		that.key = key;
+
+		return that;
+	}
+	setup.API = API;
+
+	API.template = APITemplate;
+
+	API.fromObj = SCVariable.fromObjFactory(APITemplate);
+	APITemplate.toJSON = SCVariable.toJSONFactory("API");
+
+	SCVariable.addVar(API("API"));
+}
+
 SCVariable.addVar(Balance("balance", Math.floor((Math.random() * 11) - 5)));
 SCVariable.addVar(calciumNitrateBottle);
 SCVariable.addVar(sodiumCarbonateBottle);
 SCVariable.addVar(Vial("vial1", "Vial 1"));
-SCVariable.addVar(Vial("vial2", "Vial 2"));
-
-/*// Balance scope
-{
-	let BalanceTemplate = {};
-	
-	// Get the mass currently measured by the balance
-	BalanceTemplate.getMass = function() {
-		return this.restMass + this.itemKeys.reduce(function(acc, itemKey) {
-			return acc += State.variables[itemKey].getMass();
-		}, 0);
-	}
-	
-	// Set the current mass to the balance's new zero
-	BalanceTemplate.zero = function() {
-		this.restMass = -(this.getMass() - this.restMass);
-	}
-	
-	// Add an item onto the balance
-	BalanceTemplate.addItemKey = function(itemKey) {
-		this.itemKeys.push(itemKey);
-	}
-	
-	BalanceTemplate.getItemKeyIndex = function(itemKey) {
-		return this.itemKeys.indexOf(itemKey);
-	}
-
-	// Remove an item from the balance
-	BalanceTemplate.removeItemKey = function(itemKey) {
-		var index = this.itemKeys.indexOf(itemKey);
-		if (index != -1) {
-			return this.removeIndex(index);
-		}
-		return null;
-	}
-	
-	// Remove an item given its index from the balance
-	BalanceTemplate.removeIndex = function(index) {
-		if (index < 0 || index >= this.itemKeys.length) {
-			return null;	
-		}
-		this.itemKeys.splice(index, 1);
-		return this.itemKeys[index];
-	}
-
-	BalanceTemplate.getItemDisplayName = function(index) {
-		return State.variables[this.itemKeys[index]].displayName;
-	}
-
-	BalanceTemplate.clone = function() {
-		return cloneKeys(this, Object.create(BalanceTemplate));
-	}
-
-	BalanceTemplate.toJSON = function() {
-		return JSON.reviveWrapper('setup.Balance.fromObj($ReviveData$)', cloneKeys(this, {}));
-	}
-	
-	var Balance = function(restMass) {
-		if (this && this.constructor === Balance) {
-			return Balance(...arguments);
-		}
-		let that = Object.create(BalanceTemplate);
-		
-		that.restMass = restMass;
-		that.itemKeys = [];
-		
-		return that;
-	}
-	setup.Balance = Balance;
-
-	Balance.fromObj = function(obj) {
-		return assignKeys(obj, Object.create(BalanceTemplate));
-	}
-}
-
-// Bottle scope
-{
-	let BottleTemplate = {};
-
-	BottleTemplate.pourIntoVial = function(vial) {
-		if (this.getContent() === "calciumNitrate") {
-			if (vial.containsCalciumNitrate) {
-				return false;
-			} else {
-				vial.containsCalciumNitrate = true;
-				this.volume -= 25;
-				return true;
-			}
-		} else if (this.getContent() === "sodiumCarbonate") {
-			if (vial.containsSodiumCarbonate) {
-				return false;
-			} else {
-				vial.containsSodiumCarbonate = true;
-				this.volume -= 25;
-				return true;
-			}
-		}
-	}
-
-	BottleTemplate.clone = function() {
-		return Bottle(this.displayName, this.getContent(), this.volume);
-	}
-
-	BottleTemplate.toObj = function() {
-		return {displayName: this.displayName, content: this.getContent(), volume: this.volume};
-	}
-
-	BottleTemplate.toJSON = function() {
-		return JSON.reviveWrapper('setup.Bottle.fromObj($ReviveData$)', this.toObj());
-	}
-
-	let Bottle = function(displayName, content, volume) {
-		if (this && this.constructor === Bottle) {
-			return Bottle(...arguments);
-		}
-		let that = Object.create(BottleTemplate);
-
-		that.displayName = displayName;
-		that.getContent = function() {
-			return content;
-		}
-		that.volume = volume;
-
-		return that;
-	}
-	setup.Bottle = Bottle;
-
-	Bottle.fromObj = function(obj) {
-		return Bottle(obj.displayName, obj.content, obj.volume);
-	}
-
-	var calciumNitrateBottle = Bottle("Calcium Nitrate Bottle", "calciumNitrate", 300);
-	var sodiumCarbonateBottle = Bottle("Sodium Carbonate Bottle", "sodiumCarbonate", 300);
-}
-
-// Vial scope
-{
-	let VialTemplate = {};
-
-	VialTemplate.pourIntoVial = function(vial) {
-		if (this.containsSodiumCarbonate && vial.containsSodiumCarbonate) {
-			return false;
-		}
-		if (this.containsCalciumNitrate && vial.containsCalciumNitrate) {
-			return false;
-		}
-
-		vial.containsCalciumNitrate = vial.containsCalciumNitrate || this.containsCalciumNitrate;
-		vial.containsSodiumCarbonate = vial.containsSodiumCarbonate || this.containsSodiumCarbonate;
-		this.containsCalciumNitrate = false;
-		this.containsSodiumCarbonate = false;
-
-		return true;
-	}
-
-	VialTemplate.getMass = function() {
-		let mass = 5;
-		if (this.containsCalciumNitrate) {
-			mass += 24.41;
-		}
-		if (this.containsSodiumCarbonate) {
-			mass += 25.265;
-		}
-		return mass;
-	}
-
-	VialTemplate.containsPrecipitate = function() {
-		return this.containsCalciumNitrate && this.containsSodiumCarbonate;
-	}
-
-	VialTemplate.clone = function() {
-		return cloneKeys(this, Object.create(VialTemplate));
-	}
-
-	VialTemplate.toJSON = function() {
-		return JSON.reviveWrapper('setup.Vial.fromObj($ReviveData$)', cloneKeys(this, {}));
-	}
-
-	var Vial = function(displayName) {
-		if (this && this.constructor === Vial) {
-			return Vial(...arguments);
-		}
-		let that = Object.create(VialTemplate);
-
-		that.displayName = displayName;
-		that.containsCalciumNitrate = false;
-		that.containsSodiumCarbonate = false;
-
-		return that;
-	}
-	setup.Vial = Vial;
-
-	Vial.fromObj = function(obj) {
-		return assignKeys(obj, Object.create(VialTemplate));
-	}
-}
-
-State.variables.balance = Balance(Math.floor((Math.random() * 11) - 5));
-State.variables.calciumNitrateBottle = calciumNitrateBottle;
-State.variables.sodiumCarbonateBottle = sodiumCarbonateBottle;
-State.variables.vial1 = Vial("Vial 1");
-State.variables.vial2 = Vial("Vial 2");
-*/</script><tw-passagedata pid="1" name="calcium_nitrate" tags="nobr" position="100,100" size="100,100">&lt;h1&gt;Calcium Nitrate Bottle&lt;/h1&gt;
+SCVariable.addVar(Vial("vial2", "Vial 2"));</script><tw-passagedata pid="1" name="calcium_nitrate" tags="nobr" position="100,100" size="100,100">&lt;h1&gt;Calcium Nitrate Bottle&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -756,7 +604,20 @@ You have the following equipment:&lt;br&gt;
 &lt;p class=&quot;in&quot;&gt;[[Vial 1|vial1]]&lt;/p&gt;
 &lt;p class=&quot;in&quot;&gt;[[Vial 2|vial2]]&lt;/p&gt;
 [[A bottle of Calcium Nitrate|calcium_nitrate]]&lt;br&gt;
-[[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;</tw-passagedata><tw-passagedata pid="7" name="introduction" tags="nobr" position="850,100" size="100,100">&lt;h1&gt;Introduction&lt;/h1&gt;
+[[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;</tw-passagedata><tw-passagedata pid="7" name="introduction" tags="nobr" position="850,100" size="100,100">&lt;&lt;if !$API.eval(&quot;SimpleAudio.tracks.get(&#39;mainsong&#39;)&quot;)&gt;&gt;
+    &lt;&lt;run $API.log(&quot;Caching audio&quot;)&gt;&gt;
+    &lt;&lt;cacheaudio &quot;mainsong&quot; &quot;./resources/audio/SaturdayNightQuestion.mp3&quot;&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;if !$API.eval(&quot;SimpleAudio.tracks.get(&#39;mainsong&#39;).isPlaying()&quot;)&gt;&gt;
+        &lt;&lt;run $API.log(&quot;Start playing&quot;)&gt;&gt;
+        &lt;&lt;audio &quot;mainsong&quot; play&gt;&gt;
+        &lt;&lt;audio &quot;mainsong&quot; loop&gt;&gt;
+    &lt;&lt;else&gt;&gt;
+        &lt;&lt;run $API.log(&quot;Already playing&quot;)&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+
+&lt;h1&gt;Introduction&lt;/h1&gt;
 
 Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of the precipitate resulting from the reaction between Ca(NO~~3~~)~~2~~ and Na~~2~~CO~~3~~.
 &lt;br&gt;

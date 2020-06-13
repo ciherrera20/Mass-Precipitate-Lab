@@ -122,6 +122,22 @@ function assignKeys(from, to) {
 	SCVariable.getVar = function(key) {
 		return State.variables[key];
 	}
+
+	SCVariable.toJSONFactory = function(constructorName) {
+		if (!setup[constructorName]) {
+			throw new Error("Constructor must be a property on the setup object");
+		}
+
+		return function() {
+			return JSON.reviveWrapper('setup.' + constructorName + '.fromObj($ReviveData$)', this.toObj());
+		}
+	}
+
+	SCVariable.fromObjFactory = function(prototype) {
+		return function(obj) {
+			return assignKeys(obj, Object.create(prototype));
+		}
+	}
 }
 
 // Balance scope
@@ -179,8 +195,6 @@ function assignKeys(from, to) {
 		that.key = key;
 		that.restMass = restMass;
 		that.items = [];
-		
-		console.log(that);
 
 		return that;
 	}
@@ -304,6 +318,42 @@ function assignKeys(from, to) {
 	Vial.fromObj = function(obj) {
 		return assignKeys(obj, Object.create(VialTemplate));
 	}
+}
+
+// API scope
+{
+	let APITemplate = Object.create(SCVariable.template);
+
+	APITemplate.get = function() {
+		return window.SugarCube;
+	}
+
+	APITemplate.log = function() {
+		console.log(...arguments);
+	}
+
+	APITemplate.eval = function(code) {
+		return eval(code);
+	}
+	
+	let API = function(key) {
+		if (this && this.constructor === API) {
+			return API(...arguments);
+		}
+		let that = Object.create(APITemplate);
+
+		that.key = key;
+
+		return that;
+	}
+	setup.API = API;
+
+	API.template = APITemplate;
+
+	API.fromObj = SCVariable.fromObjFactory(APITemplate);
+	APITemplate.toJSON = SCVariable.toJSONFactory("API");
+
+	SCVariable.addVar(API("API"));
 }
 
 SCVariable.addVar(Balance("balance", Math.floor((Math.random() * 11) - 5)));

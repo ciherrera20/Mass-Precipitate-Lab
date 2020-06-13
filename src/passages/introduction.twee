@@ -1,5 +1,18 @@
 :: introduction [nobr]
 
+<<if !$API.eval("SimpleAudio.tracks.get('mainsong')")>>
+    <<run $API.log("Caching audio")>>
+    <<cacheaudio "mainsong" "./resources/audio/SaturdayNightQuestion.mp3">>
+<<else>>
+    <<if !$API.eval("SimpleAudio.tracks.get('mainsong').isPlaying()")>>
+        <<run $API.log("Start playing")>>
+        <<audio "mainsong" play>>
+        <<audio "mainsong" loop>>
+    <<else>>
+        <<run $API.log("Already playing")>>
+    <</if>>
+<</if>>
+
 <h1>Introduction</h1>
 
 Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of the precipitate resulting from the reaction between Ca(NO~~3~~)~~2~~ and Na~~2~~CO~~3~~.
