@@ -22,12 +22,10 @@ Back to [[equipment]]
     <<print "Currently empty<br>">>
 <</if>>
 
-<br>
-<<set _i = $balance.getItemIndex($vial2)>>
-<<if _i === -1>>
-    <<link "Place on balance" balance>><<run $balance.addItem($vial2)>><</link>>
+<<if $balance.getItem() === $vial2>>
+    <<link "Remove from balance" vial2>><<run $balance.removeItem()>><</link>>
 <<else>>
-    <<link "Remove from balance" vial2>><<run $balance.removeIndex(_i)>><</link>>
+    <<link "Place on balance" balance>><<run $balance.setItem($vial2)>><</link>>
 <</if>>
 <br>
 <<if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate>>

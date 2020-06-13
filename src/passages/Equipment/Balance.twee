@@ -8,15 +8,10 @@ Back to [[equipment]]
 <img src="./resources/images/balance.jpg">
 <br>
 
-<<if $balance.items.length === 0>>
+<<if $balance.item === null>>
   There is currently nothing on the balance<br>
 <<else>>
-  The balance has on it:
-  <<for _i = 0; _i < $balance.items.length; _i++>>
-    <<capture _i>>
-      <p class="in"><<= $balance.getItemDisplayName(_i)>> - <<link "remove" balance>><<run $balance.removeIndex(_i)>><</link>></p>
-    <</capture>>
-  <</for>>
+  <<= $balance.getItemDisplayName()>> is currently on the balance - <<link "remove" balance>><<run $balance.removeItem()>><</link>><br>
 <</if>>
 
 The balance currently reads <<print $balance.getMass()>> grams

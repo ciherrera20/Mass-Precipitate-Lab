@@ -145,41 +145,35 @@ function assignKeys(from, to) {
 	let BalanceTemplate = Object.create(SCVariable.template);
 
 	BalanceTemplate.getMass = function() {
-		return this.restMass + this.items.reduce(function(acc, item) {
-			return acc += SCVariable.getVar(item).getMass();
-		}, 0);
+		if (this.item) {
+			return this.restMass + SCVariable.getVar(this.item).getMass();
+		}
+		return this.restMass;
 	}
 
 	BalanceTemplate.zero = function() {
 		this.restMass = -(this.getMass() - this.restMass);
 	}
 
-	BalanceTemplate.addItem = function(item) {
-		this.items.push(item.getKey());
+	BalanceTemplate.setItem = function(item) {
+		this.item = item.getKey();
 	}
 
-	BalanceTemplate.getItemIndex = function(item) {
-		return this.items.indexOf(item.getKey());
+	BalanceTemplate.getItem = function() {
+		if (this.item) {
+			return SCVariable.getVar(this.item);	
+		}
+		return null;
 	}
 
 	BalanceTemplate.removeItem = function(item) {
-		var index = this.getItemIndex(item);
-		if (index != -1) {
-			return this.removeIndex(index);
-		}
-		return null;		
+		let temp = this.item;
+		this.item = null;
+		return temp;
 	}
 
-	BalanceTemplate.removeIndex = function(index) {
-		if (index < 0 || index >= this.items.length) {
-			return null;	
-		}
-		this.items.splice(index, 1);
-		return this.items[index];
-	}
-
-	BalanceTemplate.getItemDisplayName = function(index) {
-		return SCVariable.getVar(this.items[index]).displayName;
+	BalanceTemplate.getItemDisplayName = function() {
+		return SCVariable.getVar(this.item).displayName;
 	}
 
 	BalanceTemplate.toJSON = function() {
@@ -194,7 +188,7 @@ function assignKeys(from, to) {
 		
 		that.key = key;
 		that.restMass = restMass;
-		that.items = [];
+		that.item = null;
 
 		return that;
 	}

@@ -250,41 +250,35 @@ function assignKeys(from, to) {
 	let BalanceTemplate = Object.create(SCVariable.template);
 
 	BalanceTemplate.getMass = function() {
-		return this.restMass + this.items.reduce(function(acc, item) {
-			return acc += SCVariable.getVar(item).getMass();
-		}, 0);
+		if (this.item) {
+			return this.restMass + SCVariable.getVar(this.item).getMass();
+		}
+		return this.restMass;
 	}
 
 	BalanceTemplate.zero = function() {
 		this.restMass = -(this.getMass() - this.restMass);
 	}
 
-	BalanceTemplate.addItem = function(item) {
-		this.items.push(item.getKey());
+	BalanceTemplate.setItem = function(item) {
+		this.item = item.getKey();
 	}
 
-	BalanceTemplate.getItemIndex = function(item) {
-		return this.items.indexOf(item.getKey());
+	BalanceTemplate.getItem = function() {
+		if (this.item) {
+			return SCVariable.getVar(this.item);	
+		}
+		return null;
 	}
 
 	BalanceTemplate.removeItem = function(item) {
-		var index = this.getItemIndex(item);
-		if (index != -1) {
-			return this.removeIndex(index);
-		}
-		return null;		
+		let temp = this.item;
+		this.item = null;
+		return temp;
 	}
 
-	BalanceTemplate.removeIndex = function(index) {
-		if (index < 0 || index >= this.items.length) {
-			return null;	
-		}
-		this.items.splice(index, 1);
-		return this.items[index];
-	}
-
-	BalanceTemplate.getItemDisplayName = function(index) {
-		return SCVariable.getVar(this.items[index]).displayName;
+	BalanceTemplate.getItemDisplayName = function() {
+		return SCVariable.getVar(this.item).displayName;
 	}
 
 	BalanceTemplate.toJSON = function() {
@@ -299,7 +293,7 @@ function assignKeys(from, to) {
 		
 		that.key = key;
 		that.restMass = restMass;
-		that.items = [];
+		that.item = null;
 
 		return that;
 	}
@@ -528,12 +522,10 @@ Back to [[equipment]]
     &lt;&lt;print &quot;Currently empty&lt;br&gt;&quot;&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 
-&lt;br&gt;
-&lt;&lt;set _i = $balance.getItemIndex($vial1)&gt;&gt;
-&lt;&lt;if _i === -1&gt;&gt;
-    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.addItem($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;if $balance.getItem() === $vial1&gt;&gt;
+    &lt;&lt;link &quot;Remove from balance&quot; vial1&gt;&gt;&lt;&lt;run $balance.removeItem()&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;else&gt;&gt;
-    &lt;&lt;link &quot;Remove from balance&quot; vial1&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.setItem($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 &lt;br&gt;
 &lt;&lt;if $vial1.containsCalciumNitrate || $vial1.containsSodiumCarbonate&gt;&gt;
@@ -561,12 +553,10 @@ Back to [[equipment]]
     &lt;&lt;print &quot;Currently empty&lt;br&gt;&quot;&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 
-&lt;br&gt;
-&lt;&lt;set _i = $balance.getItemIndex($vial2)&gt;&gt;
-&lt;&lt;if _i === -1&gt;&gt;
-    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.addItem($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;if $balance.getItem() === $vial2&gt;&gt;
+    &lt;&lt;link &quot;Remove from balance&quot; vial2&gt;&gt;&lt;&lt;run $balance.removeItem()&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;else&gt;&gt;
-    &lt;&lt;link &quot;Remove from balance&quot; vial2&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.setItem($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 &lt;br&gt;
 &lt;&lt;if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate&gt;&gt;
@@ -580,15 +570,10 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/balance.jpg&quot;&gt;
 &lt;br&gt;
 
-&lt;&lt;if $balance.items.length === 0&gt;&gt;
+&lt;&lt;if $balance.item === null&gt;&gt;
   There is currently nothing on the balance&lt;br&gt;
 &lt;&lt;else&gt;&gt;
-  The balance has on it:
-  &lt;&lt;for _i = 0; _i &lt; $balance.items.length; _i++&gt;&gt;
-    &lt;&lt;capture _i&gt;&gt;
-      &lt;p class=&quot;in&quot;&gt;&lt;&lt;= $balance.getItemDisplayName(_i)&gt;&gt; - &lt;&lt;link &quot;remove&quot; balance&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/p&gt;
-    &lt;&lt;/capture&gt;&gt;
-  &lt;&lt;/for&gt;&gt;
+  &lt;&lt;= $balance.getItemDisplayName()&gt;&gt; is currently on the balance - &lt;&lt;link &quot;remove&quot; balance&gt;&gt;&lt;&lt;run $balance.removeItem()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
 
 The balance currently reads &lt;&lt;print $balance.getMass()&gt;&gt; grams
