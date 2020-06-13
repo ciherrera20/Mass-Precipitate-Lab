@@ -170,7 +170,7 @@ function assignKeys(from, to) {
 		return null;		
 	}
 
-	BalanceTemplate.removeIndex = function() {
+	BalanceTemplate.removeIndex = function(index) {
 		if (index < 0 || index >= this.items.length) {
 			return null;	
 		}

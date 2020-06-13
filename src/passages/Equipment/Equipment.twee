@@ -1,5 +1,18 @@
 :: equipment [nobr]
   
+/*<<if !$API.eval("SimpleAudio.tracks.get('mainsong')")>>
+    <<run $API.log("Caching audio")>>
+    <<cacheaudio "mainsong" "./resources/audio/SaturdayNightQuestion.mp3">>
+<<else>>
+    <<if !$API.eval("SimpleAudio.tracks.get('mainsong').isPlaying()")>>
+        <<run $API.log("Start playing")>>
+        <<audio "mainsong" play>>
+        <<audio "mainsong" loop>>
+    <<else>>
+        <<run $API.log("Already playing")>>
+    <</if>>
+<</if>>*/
+
 <h1>Equipment</h1>
 
 Back to [[introduction]]
@@ -12,3 +25,5 @@ You have the following equipment:<br>
 <p class="in">[[Vial 2|vial2]]</p>
 [[A bottle of Calcium Nitrate|calcium_nitrate]]<br>
 [[A bottle of Sodium Carbonate|sodium_carbonate]]<br>
+<br>
+[[Submit lab|submit]]
