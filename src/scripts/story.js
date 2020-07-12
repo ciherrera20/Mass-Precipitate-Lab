@@ -25,51 +25,6 @@ function assignKeys(from, to) {
 	return to;
 }
 
-// TestObj scope
-/*{
-	let TestObjTemplate = {};
-	let numTestObjs = 0;
-	window.testObjs = [];
-
-	TestObjTemplate.clone = function() {
-		return TestObj(this.prop1, this.prop2);
-	}
-
-	TestObjTemplate.toObj = function() {
-		console.log("Cloned", this.getUid());
-		return {prop1: clone(this.prop1), prop2: clone(this.prop2)};
-	}
-
-	TestObjTemplate.toJSON = function() {
-		console.log("JSONed", this.getUid());
-		return JSON.reviveWrapper('setup.TestObj.fromObj($ReviveData$)', this.toObj());
-	}
-
-	var TestObj = function(prop1, prop2) {
-		if (this && this.constructor === TestObj) {
-			return TestObj(...arguments);
-		}
-		let that = Object.create(TestObjTemplate);
-		let uid = numTestObjs++;
-
-		that.prop1 = prop1 || '';
-		that.prop2 = prop2 || '';
-		that.getUid = function() {
-			return uid;
-		}
-
-		window.testObjs.push(that);
-		return that;
-	}
-	setup.TestObj = TestObj;
-
-	TestObj.fromObj = function(obj) {
-		return TestObj(obj.prop1, obj.prop2);
-	}
-}*/
-
-//State.variables.testObj = TestObj("test value 1", "test value 2");
-
 // SCVariable scope
 {
 	let SCVariableTemplate = {};
