@@ -116,7 +116,7 @@ function assignKeys(from, to) {
 
 	BalanceTemplate.getItem = function() {
 		if (this.item) {
-			return SCVariable.getVar(this.item);	
+			return SCVariable.getVar(this.item);
 		}
 		return null;
 	}
