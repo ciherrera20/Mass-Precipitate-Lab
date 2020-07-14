@@ -1,0 +1,14 @@
+:: StoryInit
+
+<<balance $balance>>
+<</balance>>
+
+<<container $vial1>>
+    <<restMass randomFloat(4, 6)>>
+    <<capacity 70>>
+<</container>>
+
+<<container $vial2>>
+    <<restMass randomFloat(4, 6)>>
+    <<capacity 70>>
+<</container>>
