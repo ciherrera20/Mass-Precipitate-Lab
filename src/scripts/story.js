@@ -167,7 +167,7 @@ function assignKeys(from, to) {
 		if (index != -1) {
 			return this.removeIndex(index);
 		}
-		return null;		
+		return null;
 	}
 
 	BalanceTemplate.removeIndex = function(index) {
