@@ -1,0 +1,27 @@
+:: watch_glass [nobr]
+
+<h1>Watch Glass</h1>
+
+Back to [[equipment]]
+<br>
+
+<img src="./resources/images/watch_glass.jpg" width="15%" height="15%">
+<br>
+
+<<if $watchGlass.has("calciumCarbonate")>>
+    Contains solid calcium carbonate<br>
+<<elseif $watchGlass.contents.length === 0>>
+    Currently empty<br>
+<</if>>
+
+<<set _i = $balance.indexOf($watchGlass)>>
+<<if _i === -1>>
+    <<link "Place on balance" balance>><<run $balance.add($watchGlass)>><</link>>
+<<else>>
+    <<link "Remove from balance" watch_glass>><<run $balance.removeIndex(_i)>><</link>>
+<</if>>
+<br>
+<<if $watchGlass.contents.length !== 0>>
+    <<link "Empty into sink" watch_glass>><<run $watchGlass.emptyInto()>><</link>>
+<</if>>
+<br>

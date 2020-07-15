@@ -8,17 +8,6 @@ Back to [[equipment]]
 <img src="./resources/images/sodium_carbonate_bottle.PNG" width="15%" height="15%">
 <br>
 
-Currently contains <<= $sodiumCarbonateBottle.volume>> ml of Sodium Carbonate
-<br>
-<<if !$vial1.containsSodiumCarbonate>>
-    <<link "Pour 25 ml into Vial 1" vial1>><<run $sodiumCarbonateBottle.pourIntoVial($vial1)>><</link>>
-<<else>>
-    Vial 1 already contains sodium carbonate
-<</if>>
-<br>
-<<if !$vial2.containsSodiumCarbonate>>
-    <<link "Pour 25 ml into Vial 2" vial2>><<run $sodiumCarbonateBottle.pourIntoVial($vial2)>><</link>>
-<<else>>
-    Vial 2 already contains sodium carbonate
-<</if>>
-<br>
+Contains sodium carbonate<br>
+<<link "Pour 25 ml into Vial 1" vial1>><<run $vial1.add(Material("sodiumCarbonate", 0.025, 1010.6))>><</link>><br>
+<<link "Pour 25 ml into Vial 2" vial2>><<run $vial2.add(Material("sodiumCarbonate", 0.025, 1010.6))>><</link>><br>

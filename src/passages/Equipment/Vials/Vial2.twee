@@ -8,28 +8,35 @@ Back to [[equipment]]
 <img src="./resources/images/vial.jpg" width="100px" height="100px">
 <br>
 
-<<if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate>>
-    <<if $vial2.containsCalciumNitrate>>
-        <<print "Contains 25 ml of calcium nitrate<br>">>
-    <</if>>
-    <<if $vial2.containsSodiumCarbonate>>
-        <<print "Contains 25 ml of sodium carbonate<br>">>
-    <</if>>
-    <<if $vial2.containsCalciumNitrate && $vial2.containsSodiumCarbonate>>
-        <<print "A precipitate has formed!<br>">>
-    <</if>>
-<<else>>
-    <<print "Currently empty<br>">>
+<<if $vial2.has("calciumNitrate")>>
+    Contains <<print $vial1.get("calciumNitrate").getVolume()>> ml of calcium nitrate<br>
+<</if>>
+<<if $vial2.has("sodiumCarbonate")>>
+    Contains <<print $vial1.get("sodiumCarbonate").getVolume()>> ml of sodium nitrate<br>
+<</if>>
+<<if $vial2.has("sodiumIonSolution")>>
+    Contains <<print $vial2.get("sodiumIonSolution").getVolume() * 1000>> ml of sodium ion solution<br>
+<</if>>
+<<if $vial2.has("nitrateIonSolution")>>
+    Contains <<print $vial2.get("nitrateIonSolution").getVolume() * 1000>> ml of nitrate ion solution<br>
+<</if>>
+<<if $vial2.has("calciumCarbonate")>>
+    A calcium carbonate precipitate has formed!<br>
+    <<link "Place precipitate on watch glass" watch_glass>><<run $watchGlass.add($vial2.remove("calciumCarbonate"))>><</link>><br>
+<</if>>
+<<if $vial2.contents.length === 0>>
+    Currently empty<br>
 <</if>>
 
-<<set _i = $balance.getItemIndex($vial2)>>
+<<set _i = $balance.indexOf($vial2)>>
 <<if _i === -1>>
-    <<link "Place on balance" balance>><<run $balance.addItem($vial2)>><</link>>
+    <<link "Place on balance" balance>><<run $balance.add($vial2)>><</link>>
 <<else>>
-    <<link "Remove from balance" vial2>><<run $balance.removeIndex(_i)>><</link>>
+    <<link "Remove from balance" vial1>><<run $balance.removeIndex(_i)>><</link>>
 <</if>>
 <br>
-<<if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate>>
-    <<link "Empty into Vial 1" vial1>><<run $vial2.pourIntoVial($vial1)>><</link>>
+<<if $vial2.contents.length !== 0>>
+    <<link "Empty into vial 1" vial1>><<run $vial2.emptyInto($vial1)>><</link>><br>
+    <<link "Empty into sink" vial2>><<run $vial2.emptyInto()>><</link>><br>
 <</if>>
 <br>

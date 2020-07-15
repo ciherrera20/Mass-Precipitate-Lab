@@ -100,7 +100,7 @@ var saveAs=saveAs||navigator.msSaveBlob&&navigator.msSaveBlob.bind(navigator)||f
 		<div id="init-lacking">Your browser lacks required capabilities. Please upgrade it or switch to another to continue.</div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="8" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">.in {
+	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="9" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="debug" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">.in {
     text-indent: 2em;
     margin: 0px;
 }</style><script role="script" id="twine-user-script" type="text/twine-javascript">// Deep copies keys from the object from to the object to
@@ -333,7 +333,11 @@ const EventDispatcher = (function(){
                             jQuery.wiki(that.payload[0].contents);
                         },
                         function done() {
-                            State.variables.event = tempEvent;
+                            if (tempEvent === undefined) {
+                                delete State.variables.event;
+                            } else {
+                                State.variables.event = tempEvent;
+                            }
                         }, 
                         function start() {
                             tempEvent = State.variables.event;
@@ -575,7 +579,7 @@ const EquipmentContainer = (function() {
             SCVariable.getVar(item.containedIn).remove(item);
         }
         if (this.singleItem && this.contents.length > 0) {
-            return;
+            this.removeAll();
         }
         this.contents.push(item.getKey());
 
@@ -597,18 +601,30 @@ const EquipmentContainer = (function() {
 		return null;
     }
 
+    EquipmentContainer.prototype.removeAll = function() {
+        let that = this;
+        this.contents.forEach(function(item, i) {
+            that.removeIndex(i);
+        });
+    }
+
     EquipmentContainer.prototype.removeIndex = function(index) {
         if (index < 0 || index >= this.contents.length) {
 			return null;	
         }
-        const itemRemoved = this.contents.splice(index, 1)[0];
-        
+        const itemRemoved = SCVariable.getVar(this.contents.splice(index, 1)[0]);
+        itemRemoved.containedIn = undefined;
+
         const e = Object.create(null);
         e.parent = this;
         e.itemRemoved = itemRemoved;
         this.dispatchEvent(LEvent("itemremoved", e));
 
 		return itemRemoved;
+    }
+
+    EquipmentContainer.prototype.get = function(index) {
+        return SCVariable.getVar(this.contents[index]);
     }
 
     EquipmentContainer.fromObj = function(obj) {
@@ -632,6 +648,7 @@ const EquipmentContainer = (function() {
 const Balance = (function() {
     const populate = function(config) {
         this.offset = config.offset;
+        this.decimalPlaces = config.decimalPlaces;
         this.defineEvents(["zero", "measurement"]);
     }
 
@@ -645,13 +662,14 @@ const Balance = (function() {
 
         const config = Object.create(null);
         config.offset = Math.floor((Math.random() * 11) - 5);
+        config.decimalPlaces = Infinity;
         populate.call(this, config);
     }
     Balance.inheritFrom(EquipmentContainer);
     Cloneable.setupConstructor(Balance, "Balance");
 
     Balance.prototype.measureMass = function() {
-        const measuredMass = this.offset + this.contents.reduce(function(acc, item) {
+        let measuredMass = this.offset + this.contents.reduce(function(acc, item) {
 			return acc + SCVariable.getVar(item).getMass();
         }, 0);
         
@@ -659,6 +677,10 @@ const Balance = (function() {
         e.parent = this;
         e.measuredMass = measuredMass;
         this.dispatchEvent(LEvent("measurement", e));
+
+        if (this.decimalPlaces !== Infinity) {
+            measuredMass = Math.round(measuredMass * Math.pow(10, this.decimalPlaces)) / Math.pow(10, this.decimalPlaces);
+        }
 
         return measuredMass;
     }
@@ -683,11 +705,12 @@ const Balance = (function() {
 
         const config = Object.create(null);
         config.offset = obj.offset;
+        config.decimalPlaces = obj.decimalPlaces;
         populate.call(this, config);
     }
 
     Macro.add("balance", {
-        tags: ["offset", "singleItem", "displayName", "displayContents"],
+        tags: ["offset", "singleItem", "decimalPlaces", "displayName", "displayContents"],
         handler() {
             console.log(this);
             if (this.args.length !== 1) {
@@ -708,6 +731,8 @@ const Balance = (function() {
                     parentObject.offset = Number(chunk.args[0]);
                 } else if (chunk.name === "singleItem") {
                     parentObject.singleItem = Boolean(chunk.args[0]);
+                } else if (chunk.name === "decimalPlaces") {
+                    parentObject.decimalPlaces = Number(chunk.args[0]);
                 } else if (chunk.name === "displayName") {
                     parentObject.displayName = String(chunk.args[0]);
                 }
@@ -725,7 +750,7 @@ const MaterialContainer = (function() {
         this.restMass = config.restMass;
         this.capacity = config.capacity || Infinity;
         this.volume = config.volume || 0;
-        this.mass = config.mass || 0;
+        this.contentMass = config.contentMass || 0;
         this.defineEvents(["materialadded", "materialremoved", "emptied", "overflow"]);
     }
 
@@ -746,12 +771,12 @@ const MaterialContainer = (function() {
     Cloneable.setupConstructor(MaterialContainer, "MaterialContainer");
 
     const updateMeasurements = function() {
-        let mass = 0;
+        let contentMass = 0;
         this.volume = this.contents.reduce(function(volume, material) {
-            mass += material.mass;
-            return volume + material.volume;
+            contentMass += material.getMass();
+            return volume + material.getVolume();
         }, 0);
-        this.mass = mass;
+        this.contentMass = contentMass;
     }
 
     /**
@@ -763,7 +788,7 @@ const MaterialContainer = (function() {
      * @param material      The material to add
      */
     MaterialContainer.prototype.add = function(material) {
-        const surplus = (this.volume + material.volume) - this.capacity;
+        const surplus = (this.volume + material.getVolume()) - this.capacity;
         if (surplus > 0) {
             const e = Object.create(null);
             e.parent = this;
@@ -789,12 +814,29 @@ const MaterialContainer = (function() {
         return this.contents.indexOf(material);
     }
 
-    MaterialContainer.prototype.remove = function(material) {
-        var index = this.indexOf(material);
+    const indexOfLabel = function(label) {
+        return this.contents.findIndex(function(material) {
+            return material.label === label;
+        });
+    }
+
+    MaterialContainer.prototype.remove = function(label) {
+        var index = indexOfLabel.call(this, label);
 		if (index != -1) {
 			return this.removeIndex(index);
 		}
 		return null;
+    }
+
+    MaterialContainer.prototype.has = function(label) {
+        return indexOfLabel.call(this, label) !== -1;
+    }
+
+    MaterialContainer.prototype.get = function(label) {
+        const index = indexOfLabel.call(this, label);
+        if (index !== -1) {
+            return this.contents[index];
+        }
     }
 
     MaterialContainer.prototype.emptyInto = function(newContainer) {
@@ -805,6 +847,8 @@ const MaterialContainer = (function() {
                 this.contents.pop();
             }
         }
+
+        updateMeasurements.call(this);
 
         const e = Object.create(null);
         e.parent = this;
@@ -818,19 +862,19 @@ const MaterialContainer = (function() {
         }
         const materialRemoved = this.contents.splice(index, 1)[0];
         
-        this.volume -= materialRemoved.volume;
-        this.mass -= materialRemoved.mass;
+        this.volume -= materialRemoved.getVolume();
+        this.contentMass -= materialRemoved.getMass();
 
         const e = Object.create(null);
         e.parent = this;
         e.materialRemoved = materialRemoved;
         this.dispatchEvent(LEvent("materialremoved", e));
 
-		return itemRemoved;
+		return materialRemoved;
     }
 
 	MaterialContainer.prototype.getMass = function() {
-		return this.mass;		
+		return this.restMass + this.contentMass;
 	}
 
     MaterialContainer.fromObj = function(obj) {
@@ -847,7 +891,7 @@ const MaterialContainer = (function() {
         config.restMass = obj.restMass;
         config.capacity = obj.capacity;
         config.volume = obj.volume;
-        config.mass = obj.mass;
+        config.contentMass = obj.contentMass;
         populate.call(this, config);
     }
 
@@ -908,12 +952,16 @@ const MaterialContainer = (function() {
 const Material = (function() {
     const populate = function(config) {
         this.label = config.label;
-        this.volume = config.volume;
-        this.mass = config.mass;
+        if (config.solid) {
+            this.mass = config.mass;
+        } else {
+            this.volume = config.volume;
+        }
+        this.density = config.density;
         this.solid = config.solid;
     }
 
-    const Material = function(label, volume, mass, solid = false) {
+    const Material = function(label, volume, density, solid = false) {
         if (!this) {
             const material = Object.create(Material.prototype);
             Material.call(material, ...arguments);
@@ -923,8 +971,12 @@ const Material = (function() {
 
         const config = Object.create(null);
         config.label = label;
-        config.volume = volume;
-        config.mass = mass;
+        if (solid) {
+            config.mass = volume;
+        } else {
+            config.volume = volume;
+        }
+        config.density = density;
         config.solid = solid;
         populate.call(this, config);
     }
@@ -936,22 +988,44 @@ const Material = (function() {
         Cloneable.call(newMaterial);
         
         Object.assign(newMaterial, this);
-        newMaterial.volume *= percentage;
-        newMaterial.mass *= percentage;
+        if (this.solid) {
+            newMaterial.mass *= percentage;
+            this.mass *= (1 - percentage);
+        } else {
+            newMaterial.volume *= percentage;
+            this.volume *= (1 - percentage);
+        }
 
-        this.volume *= (1 - percentage);
-        this.mass *= (1 - percentage);
         return newMaterial;
     }
 
     Material.prototype.combineLike = function(material) {
         if (material.label === this.label) {
-            this.volume += material.volume;
-            this.mass += material.mass;
-            material.volume = 0;
-            material.mass = 0;
+            if (this.solid) {
+                this.mass += material.mass;
+                material.mass = 0;
+            } else {
+                this.volume += material.volume;
+                material.volume = 0;
+            }
         }
         return this;
+    }
+
+    Material.prototype.getMass = function() {
+        if (this.solid) {
+            return this.mass;
+        } else {
+            return this.density * this.volume;
+        }
+    }
+
+    Material.prototype.getVolume = function() {
+        if (this.solid) {
+            return this.mass / this.density;
+        } else {
+            return this.volume;
+        }
     }
 
     Material.fromObj = function(obj) {
@@ -1085,12 +1159,14 @@ const MaterialManager = (function() {
                     delete contentMap[label];
                 });
                 newMaterials.forEach(function(newMaterial) {
-                    const label = newMaterial.label;
-                    const existingMaterial = contentMap[label];
-                    if (existingMaterial) {
-                        newMaterial = combineLike([existingMaterial, newMaterial]);
+                    if (newMaterial.getVolume() > 0 || newMaterial.getMass() > 0) {
+                        const label = newMaterial.label;
+                        const existingMaterial = contentMap[label];
+                        if (existingMaterial) {
+                            newMaterial = combineLike([existingMaterial, newMaterial]);
+                        }
+                        contentMap[label] = newMaterial;
                     }
-                    contentMap[label] = newMaterial;
                 });
             }
         });
@@ -1178,8 +1254,16 @@ const MaterialManager = (function() {
                             results = State.variables.results;
                         },
                         function done() {
-                            State.variables.materials = tempMaterials;
-                            State.variables.results = tempResults;
+                            if (tempMaterials === undefined) {
+                                delete State.variables.materials;
+                            } else {
+                                State.variables.materials = tempMaterials;
+                            }
+                            if (tempResults === undefined) {
+                                delete State.variables.results;
+                            } else {
+                                State.variables.results = tempResults;
+                            }
                         }, 
                         function start() {
                             tempMaterials = State.variables.materials;
@@ -1201,17 +1285,71 @@ const MaterialManager = (function() {
 
 window.MaterialManager = MaterialManager;
 window.Material = Material;</script><tw-passagedata pid="1" name="StoryInit" tags="" position="100,100" size="100,100">&lt;&lt;balance $balance&gt;&gt;
+    &lt;&lt;singleItem true&gt;&gt;
+    &lt;&lt;decimalPlaces 3&gt;&gt;
 &lt;&lt;/balance&gt;&gt;
 
 &lt;&lt;container $vial1&gt;&gt;
-    &lt;&lt;restMass randomFloat(4, 6)&gt;&gt;
-    &lt;&lt;capacity 70&gt;&gt;
+    &lt;&lt;restMass `randomFloat(4.0, 6.0)`&gt;&gt;
+    &lt;&lt;capacity 60&gt;&gt;
+    &lt;&lt;displayName &quot;vial1&quot;&gt;&gt;
 &lt;&lt;/container&gt;&gt;
 
 &lt;&lt;container $vial2&gt;&gt;
-    &lt;&lt;restMass randomFloat(4, 6)&gt;&gt;
-    &lt;&lt;capacity 70&gt;&gt;
-&lt;&lt;/container&gt;&gt;</tw-passagedata><tw-passagedata pid="2" name="calcium_nitrate" tags="nobr" position="225,100" size="100,100">&lt;h1&gt;Calcium Nitrate Bottle&lt;/h1&gt;
+    &lt;&lt;restMass `randomFloat(4.0, 6.0)`&gt;&gt;
+    &lt;&lt;capacity 60&gt;&gt;
+    &lt;&lt;displayName &quot;vial2&quot;&gt;&gt;
+&lt;&lt;/container&gt;&gt;
+
+&lt;&lt;container $watchGlass&gt;&gt;
+    &lt;&lt;restMass `Math.round(randomFloat(2.0, 3.0) * 100) / 100`&gt;&gt;
+    &lt;&lt;displayName &quot;watch glass&quot;&gt;&gt;
+&lt;&lt;/container&gt;&gt;
+
+// Create recipe to add together Calcium Nitrate and Sodium Carbonate using stoichiometry
+&lt;&lt;addRecipe calciumNitrate sodiumCarbonate&gt;&gt;
+    // Store solutions in temporary variables
+    &lt;&lt;set _CaNO3 = $materials[0]&gt;&gt;
+    &lt;&lt;set _NaCO3 = $materials[1]&gt;&gt;
+
+    // Constants
+    &lt;&lt;set _molarity = 0.1&gt;&gt;
+    &lt;&lt;set _CaCO3MolarMass = 100.086&gt;&gt;
+    &lt;&lt;set _NaMolarMass = 22.99&gt;&gt;
+    &lt;&lt;set _NO3MolarMass = 62.004&gt;&gt;
+
+    // Store moles of each solution in temporary variables
+    &lt;&lt;set _molesCaNO3 = _CaNO3.getVolume() * _molarity&gt;&gt;
+    &lt;&lt;set _molesNaCO3 = _NaCO3.getVolume() * _molarity&gt;&gt;
+
+    // Determine moles of precipitate using the limiting reactant, and split off the excess reactant into a temporary variable
+    &lt;&lt;if _molesCaNO3 &gt; _molesNaCO3&gt;&gt;
+        &lt;&lt;set _molesCaCO3 = _molesNaCO3&gt;&gt;
+        &lt;&lt;set _reactedMoles = _molesNaCO3&gt;&gt;
+        &lt;&lt;set _reactedVolume = _NaCO3.getVolume()&gt;&gt;
+        &lt;&lt;set _excess = _CaNO3.splitOff(1 - (_molesNaCO3 / _molesCaNO3))&gt;&gt;
+    &lt;&lt;else&gt;&gt;
+        &lt;&lt;set _molesCaCO3 = _molesCaNO3&gt;&gt;
+        &lt;&lt;set _reactedMoles = _molesCaNO3&gt;&gt;
+        &lt;&lt;set _reactedVolume = _CaNO3.getVolume()&gt;&gt;
+        &lt;&lt;set _excess = _NaCO3.splitOff(1 - (_molesCaNO3 / _molesNaCO3))&gt;&gt;
+    &lt;&lt;/if&gt;&gt;
+
+    // Create the precipitate
+    &lt;&lt;set _CaCO3 = Material(&quot;calciumCarbonate&quot;, _CaCO3MolarMass * _molesCaCO3, Infinity, true)&gt;&gt;
+
+    // Create the leftover ion solutions
+    &lt;&lt;set _NaIonMass = 2 * _reactedMoles * _NaMolarMass&gt;&gt;
+    &lt;&lt;set _NO3IonMass = 2 * _reactedMoles * _NO3MolarMass&gt;&gt;
+    &lt;&lt;set _NaIonSolution = Material(&quot;sodiumIonSolution&quot;, _reactedVolume, (1000 * _reactedVolume + _NaIonMass) / _reactedVolume)&gt;&gt;
+    &lt;&lt;set _NO3IonSolution = Material(&quot;nitrateIonSolution&quot;, _reactedVolume, (1000 * _reactedVolume + _NO3IonMass) / _reactedVolume)&gt;&gt;
+
+    // Add results to results array
+    &lt;&lt;set $results[0] = _CaCO3&gt;&gt;
+    &lt;&lt;set $results[1] = _excess&gt;&gt;
+    &lt;&lt;set $results[2] = _NaIonSolution&gt;&gt;
+    &lt;&lt;set $results[3] = _NO3IonSolution&gt;&gt;
+&lt;&lt;/addRecipe&gt;&gt;</tw-passagedata><tw-passagedata pid="2" name="calcium_nitrate" tags="nobr" position="225,100" size="100,100">&lt;h1&gt;Calcium Nitrate Bottle&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -1219,19 +1357,9 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/calcium_nitrate_bottle.PNG&quot; width=&quot;15%&quot; height=&quot;15%&quot;&gt;
 &lt;br&gt;
 
-Currently contains &lt;&lt;= $calciumNitrateBottle.volume&gt;&gt; ml of Calcium Nitrate
-&lt;br&gt;
-&lt;&lt;if !$vial1.containsCalciumNitrate&gt;&gt;
-    &lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $calciumNitrateBottle.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    Vial 1 already contains calcium nitrate
-&lt;&lt;/if&gt;&gt;
-&lt;br&gt;
-&lt;&lt;if !$vial2.containsCalciumNitrate&gt;&gt;
-    &lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $calciumNitrateBottle.pourIntoVial($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    Vial 2 already contains calcium nitrate
-&lt;&lt;/if&gt;&gt;</tw-passagedata><tw-passagedata pid="3" name="sodium_carbonate" tags="nobr" position="350,100" size="100,100">&lt;h1&gt;Sodium Carbonate Bottle&lt;/h1&gt;
+Contains calcium nitrate&lt;br&gt;
+&lt;&lt;link &quot;Pour 25 ml into vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial1.add(Material(&quot;calciumNitrate&quot;, 0.025, 1016.4))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;link &quot;Pour 25 ml into vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial2.add(Material(&quot;calciumNitrate&quot;, 0.025, 1016.4))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;</tw-passagedata><tw-passagedata pid="3" name="sodium_carbonate" tags="nobr" position="350,100" size="100,100">&lt;h1&gt;Sodium Carbonate Bottle&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -1239,20 +1367,9 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/sodium_carbonate_bottle.PNG&quot; width=&quot;15%&quot; height=&quot;15%&quot;&gt;
 &lt;br&gt;
 
-Currently contains &lt;&lt;= $sodiumCarbonateBottle.volume&gt;&gt; ml of Sodium Carbonate
-&lt;br&gt;
-&lt;&lt;if !$vial1.containsSodiumCarbonate&gt;&gt;
-    &lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $sodiumCarbonateBottle.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    Vial 1 already contains sodium carbonate
-&lt;&lt;/if&gt;&gt;
-&lt;br&gt;
-&lt;&lt;if !$vial2.containsSodiumCarbonate&gt;&gt;
-    &lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $sodiumCarbonateBottle.pourIntoVial($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    Vial 2 already contains sodium carbonate
-&lt;&lt;/if&gt;&gt;
-&lt;br&gt;</tw-passagedata><tw-passagedata pid="4" name="vial2" tags="nobr" position="475,100" size="100,100">&lt;h1&gt;Vial 2&lt;/h1&gt;
+Contains sodium carbonate&lt;br&gt;
+&lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial1.add(Material(&quot;sodiumCarbonate&quot;, 0.025, 1010.6))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial2.add(Material(&quot;sodiumCarbonate&quot;, 0.025, 1010.6))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;</tw-passagedata><tw-passagedata pid="4" name="vial1" tags="nobr" position="475,100" size="100,100">&lt;h1&gt;Vial 1&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -1260,63 +1377,101 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
 
-&lt;&lt;if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate&gt;&gt;
-    &lt;&lt;if $vial2.containsCalciumNitrate&gt;&gt;
-        &lt;&lt;print &quot;Contains 25 ml of calcium nitrate&lt;br&gt;&quot;&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-    &lt;&lt;if $vial2.containsSodiumCarbonate&gt;&gt;
-        &lt;&lt;print &quot;Contains 25 ml of sodium carbonate&lt;br&gt;&quot;&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-    &lt;&lt;if $vial2.containsCalciumNitrate &amp;&amp; $vial2.containsSodiumCarbonate&gt;&gt;
-        &lt;&lt;print &quot;A precipitate has formed!&lt;br&gt;&quot;&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    &lt;&lt;print &quot;Currently empty&lt;br&gt;&quot;&gt;&gt;
+&lt;&lt;if $vial1.has(&quot;calciumNitrate&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial1.get(&quot;calciumNitrate&quot;).getVolume() * 1000&gt;&gt; ml of calcium nitrate&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial1.has(&quot;sodiumCarbonate&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial1.get(&quot;sodiumCarbonate&quot;).getVolume() * 1000&gt;&gt; ml of sodium nitrate&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial1.has(&quot;sodiumIonSolution&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial1.get(&quot;sodiumIonSolution&quot;).getVolume() * 1000&gt;&gt; ml of sodium ion solution&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial1.has(&quot;nitrateIonSolution&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial1.get(&quot;nitrateIonSolution&quot;).getVolume() * 1000&gt;&gt; ml of nitrate ion solution&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial1.has(&quot;calciumCarbonate&quot;)&gt;&gt;
+    A calcium carbonate precipitate has formed!&lt;br&gt;
+    &lt;&lt;link &quot;Place precipitate on watch glass&quot; watch_glass&gt;&gt;&lt;&lt;run $watchGlass.add($vial1.remove(&quot;calciumCarbonate&quot;))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial1.contents.length === 0&gt;&gt;
+    Currently empty&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
 
-&lt;&lt;set _i = $balance.getItemIndex($vial2)&gt;&gt;
+&lt;&lt;set _i = $balance.indexOf($vial1)&gt;&gt;
 &lt;&lt;if _i === -1&gt;&gt;
-    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.addItem($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    &lt;&lt;link &quot;Remove from balance&quot; vial2&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;/if&gt;&gt;
-&lt;br&gt;
-&lt;&lt;if $vial2.containsCalciumNitrate || $vial2.containsSodiumCarbonate&gt;&gt;
-    &lt;&lt;link &quot;Empty into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial2.pourIntoVial($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
-&lt;&lt;/if&gt;&gt;
-&lt;br&gt;</tw-passagedata><tw-passagedata pid="5" name="vial1" tags="nobr" position="600,100" size="100,100">&lt;h1&gt;Vial 1&lt;/h1&gt;
-
-Back to [[equipment]]
-&lt;br&gt;
-
-&lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
-&lt;br&gt;
-
-&lt;&lt;if $vial1.containsCalciumNitrate || $vial1.containsSodiumCarbonate&gt;&gt;
-    &lt;&lt;if $vial1.containsCalciumNitrate&gt;&gt;
-        &lt;&lt;print &quot;Contains 25 ml of calcium nitrate&lt;br&gt;&quot;&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-    &lt;&lt;if $vial1.containsSodiumCarbonate&gt;&gt;
-        &lt;&lt;print &quot;Contains 25 ml of sodium carbonate&lt;br&gt;&quot;&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-    &lt;&lt;if $vial1.containsCalciumNitrate &amp;&amp; $vial1.containsSodiumCarbonate&gt;&gt;
-        &lt;&lt;print &quot;A precipitate has formed!&lt;br&gt;&quot;&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    &lt;&lt;print &quot;Currently empty&lt;br&gt;&quot;&gt;&gt;
-&lt;&lt;/if&gt;&gt;
-
-&lt;&lt;set _i = $balance.getItemIndex($vial1)&gt;&gt;
-&lt;&lt;if _i === -1&gt;&gt;
-    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.addItem($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.add($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;else&gt;&gt;
     &lt;&lt;link &quot;Remove from balance&quot; vial1&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 &lt;br&gt;
-&lt;&lt;if $vial1.containsCalciumNitrate || $vial1.containsSodiumCarbonate&gt;&gt;
-    &lt;&lt;link &quot;Empty into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial1.pourIntoVial($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;if $vial1.contents.length !== 0&gt;&gt;
+    &lt;&lt;link &quot;Empty into vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial1.emptyInto($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+    &lt;&lt;link &quot;Empty into sink&quot; vial1&gt;&gt;&lt;&lt;run $vial1.emptyInto()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
-&lt;br&gt;</tw-passagedata><tw-passagedata pid="6" name="balance" tags="nobr" position="725,100" size="100,100">&lt;h1&gt;Balance&lt;/h1&gt;
+&lt;br&gt;</tw-passagedata><tw-passagedata pid="5" name="vial2" tags="nobr" position="600,100" size="100,100">&lt;h1&gt;Vial 2&lt;/h1&gt;
+
+Back to [[equipment]]
+&lt;br&gt;
+
+&lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
+&lt;br&gt;
+
+&lt;&lt;if $vial2.has(&quot;calciumNitrate&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial1.get(&quot;calciumNitrate&quot;).getVolume()&gt;&gt; ml of calcium nitrate&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial2.has(&quot;sodiumCarbonate&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial1.get(&quot;sodiumCarbonate&quot;).getVolume()&gt;&gt; ml of sodium nitrate&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial2.has(&quot;sodiumIonSolution&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial2.get(&quot;sodiumIonSolution&quot;).getVolume() * 1000&gt;&gt; ml of sodium ion solution&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial2.has(&quot;nitrateIonSolution&quot;)&gt;&gt;
+    Contains &lt;&lt;print $vial2.get(&quot;nitrateIonSolution&quot;).getVolume() * 1000&gt;&gt; ml of nitrate ion solution&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial2.has(&quot;calciumCarbonate&quot;)&gt;&gt;
+    A calcium carbonate precipitate has formed!&lt;br&gt;
+    &lt;&lt;link &quot;Place precipitate on watch glass&quot; watch_glass&gt;&gt;&lt;&lt;run $watchGlass.add($vial2.remove(&quot;calciumCarbonate&quot;))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;&lt;if $vial2.contents.length === 0&gt;&gt;
+    Currently empty&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+
+&lt;&lt;set _i = $balance.indexOf($vial2)&gt;&gt;
+&lt;&lt;if _i === -1&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.add($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;link &quot;Remove from balance&quot; vial1&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;
+&lt;&lt;if $vial2.contents.length !== 0&gt;&gt;
+    &lt;&lt;link &quot;Empty into vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial2.emptyInto($vial1)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+    &lt;&lt;link &quot;Empty into sink&quot; vial2&gt;&gt;&lt;&lt;run $vial2.emptyInto()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;</tw-passagedata><tw-passagedata pid="6" name="watch_glass" tags="nobr" position="725,100" size="100,100">&lt;h1&gt;Watch Glass&lt;/h1&gt;
+
+Back to [[equipment]]
+&lt;br&gt;
+
+&lt;img src=&quot;./resources/images/watch_glass.jpg&quot; width=&quot;15%&quot; height=&quot;15%&quot;&gt;
+&lt;br&gt;
+
+&lt;&lt;if $watchGlass.has(&quot;calciumCarbonate&quot;)&gt;&gt;
+    Contains solid calcium carbonate&lt;br&gt;
+&lt;&lt;elseif $watchGlass.contents.length === 0&gt;&gt;
+    Currently empty&lt;br&gt;
+&lt;&lt;/if&gt;&gt;
+
+&lt;&lt;set _i = $balance.indexOf($watchGlass)&gt;&gt;
+&lt;&lt;if _i === -1&gt;&gt;
+    &lt;&lt;link &quot;Place on balance&quot; balance&gt;&gt;&lt;&lt;run $balance.add($watchGlass)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;else&gt;&gt;
+    &lt;&lt;link &quot;Remove from balance&quot; watch_glass&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;
+&lt;&lt;if $watchGlass.contents.length !== 0&gt;&gt;
+    &lt;&lt;link &quot;Empty into sink&quot; watch_glass&gt;&gt;&lt;&lt;run $watchGlass.emptyInto()&gt;&gt;&lt;&lt;/link&gt;&gt;
+&lt;&lt;/if&gt;&gt;
+&lt;br&gt;</tw-passagedata><tw-passagedata pid="7" name="balance" tags="nobr" position="850,100" size="100,100">&lt;h1&gt;Balance&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
@@ -1330,27 +1485,14 @@ Back to [[equipment]]
   The balance has on it:
   &lt;&lt;for _i = 0; _i &lt; $balance.contents.length; _i++&gt;&gt;
     &lt;&lt;capture _i&gt;&gt;
-      &lt;p class=&quot;in&quot;&gt;&lt;&lt;= $balance.contents[_i].displayName&gt;&gt; - &lt;&lt;link &quot;remove&quot; balance&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/p&gt;
+      &lt;p class=&quot;in&quot;&gt;&lt;&lt;= $balance.get(_i).displayName&gt;&gt; - &lt;&lt;link &quot;remove&quot; balance&gt;&gt;&lt;&lt;run $balance.removeIndex(_i)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;/p&gt;
     &lt;&lt;/capture&gt;&gt;
   &lt;&lt;/for&gt;&gt;
 &lt;&lt;/if&gt;&gt;
 
-The balance currently reads &lt;&lt;print $balance.getMass()&gt;&gt; grams
+The balance currently reads &lt;&lt;print $balance.measureMass()&gt;&gt; grams
 &lt;br&gt;
-&lt;&lt;link &quot;Zero balance&quot; balance&gt;&gt;&lt;&lt;run $balance.zero()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="equipment" tags="nobr" position="850,100" size="100,100">/*&lt;&lt;if !$API.eval(&quot;SimpleAudio.tracks.get(&#39;mainsong&#39;)&quot;)&gt;&gt;
-    &lt;&lt;run $API.log(&quot;Caching audio&quot;)&gt;&gt;
-    &lt;&lt;cacheaudio &quot;mainsong&quot; &quot;./resources/audio/SaturdayNightQuestion.mp3&quot;&gt;&gt;
-&lt;&lt;else&gt;&gt;
-    &lt;&lt;if !$API.eval(&quot;SimpleAudio.tracks.get(&#39;mainsong&#39;).isPlaying()&quot;)&gt;&gt;
-        &lt;&lt;run $API.log(&quot;Start playing&quot;)&gt;&gt;
-        &lt;&lt;audio &quot;mainsong&quot; play&gt;&gt;
-        &lt;&lt;audio &quot;mainsong&quot; loop&gt;&gt;
-    &lt;&lt;else&gt;&gt;
-        &lt;&lt;run $API.log(&quot;Already playing&quot;)&gt;&gt;
-    &lt;&lt;/if&gt;&gt;
-&lt;&lt;/if&gt;&gt;*/
-
-&lt;h1&gt;Equipment&lt;/h1&gt;
+&lt;&lt;link &quot;Zero balance&quot; balance&gt;&gt;&lt;&lt;run $balance.zero()&gt;&gt;&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="equipment" tags="nobr" position="975,100" size="100,100">&lt;h1&gt;Equipment&lt;/h1&gt;
 
 Back to [[introduction]]
 &lt;br&gt;
@@ -1360,25 +1502,21 @@ You have the following equipment:&lt;br&gt;
 2 small vials:&lt;br&gt;
 &lt;p class=&quot;in&quot;&gt;[[Vial 1|vial1]]&lt;/p&gt;
 &lt;p class=&quot;in&quot;&gt;[[Vial 2|vial2]]&lt;/p&gt;
+[[A watch glass|watch_glass]]&lt;br&gt;
 [[A bottle of Calcium Nitrate|calcium_nitrate]]&lt;br&gt;
 [[A bottle of Sodium Carbonate|sodium_carbonate]]&lt;br&gt;
 &lt;br&gt;
-[[Submit lab|submit]]</tw-passagedata><tw-passagedata pid="8" name="introduction" tags="nobr" position="975,100" size="100,100">/*&lt;&lt;if !$API.eval(&quot;SimpleAudio.tracks.get(&#39;mainsong&#39;)&quot;)&gt;&gt;
-    &lt;&lt;run $API.log(&quot;Caching audio&quot;)&gt;&gt;
-    &lt;&lt;cacheaudio &quot;mainsong&quot; &quot;./resources/audio/SaturdayNightQuestion.mp3&quot;&gt;&gt;
-&lt;&lt;/if&gt;&gt;*/
-
-&lt;h1&gt;Introduction&lt;/h1&gt;
+[[Submit lab|submit]]</tw-passagedata><tw-passagedata pid="9" name="introduction" tags="nobr" position="1100,100" size="100,100">&lt;h1&gt;Introduction&lt;/h1&gt;
 
 Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of the precipitate resulting from the reaction between Ca(NO~~3~~)~~2~~ and Na~~2~~CO~~3~~.
 &lt;br&gt;
 [[Proceed to equipment|equipment]]
 &lt;br&gt;
-[[View lab procedures|procedures]]</tw-passagedata><tw-passagedata pid="9" name="procedures" tags="nobr" position="1100,100" size="100,100">&lt;h1&gt;Lab Procedures&lt;/h1&gt;
+[[View lab procedures|procedures]]</tw-passagedata><tw-passagedata pid="10" name="procedures" tags="nobr" position="1225,100" size="100,100">&lt;h1&gt;Lab Procedures&lt;/h1&gt;
 
 Back to [[introduction]]
 &lt;br&gt;
-&lt;iframe src=&quot;./resources/pdfs/Procedures.pdf&quot; width=&quot;100%&quot; height=&quot;1200px&quot;&gt;&lt;/iframe&gt;</tw-passagedata><tw-passagedata pid="10" name="submit" tags="nobr" position="1225,100" size="100,100">&lt;h1&gt;Submit Lab&lt;/h1&gt;
+&lt;iframe src=&quot;./resources/pdfs/Procedures.pdf&quot; width=&quot;100%&quot; height=&quot;1200px&quot;&gt;&lt;/iframe&gt;</tw-passagedata><tw-passagedata pid="11" name="submit" tags="nobr" position="100,225" size="100,100">&lt;h1&gt;Submit Lab&lt;/h1&gt;
 
 Back to [[equipment]]</tw-passagedata></tw-storydata>
 	<script id="script-sugarcube" type="text/javascript">

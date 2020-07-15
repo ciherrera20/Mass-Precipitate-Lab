@@ -1,14 +1,68 @@
 :: StoryInit
 
 <<balance $balance>>
+    <<singleItem true>>
+    <<decimalPlaces 3>>
 <</balance>>
 
 <<container $vial1>>
-    <<restMass randomFloat(4, 6)>>
-    <<capacity 70>>
+    <<restMass `randomFloat(4.0, 6.0)`>>
+    <<capacity 60>>
+    <<displayName "vial1">>
 <</container>>
 
 <<container $vial2>>
-    <<restMass randomFloat(4, 6)>>
-    <<capacity 70>>
+    <<restMass `randomFloat(4.0, 6.0)`>>
+    <<capacity 60>>
+    <<displayName "vial2">>
 <</container>>
+
+<<container $watchGlass>>
+    <<restMass `Math.round(randomFloat(2.0, 3.0) * 100) / 100`>>
+    <<displayName "watch glass">>
+<</container>>
+
+// Create recipe to add together Calcium Nitrate and Sodium Carbonate using stoichiometry
+<<addRecipe calciumNitrate sodiumCarbonate>>
+    // Store solutions in temporary variables
+    <<set _CaNO3 = $materials[0]>>
+    <<set _NaCO3 = $materials[1]>>
+
+    // Constants
+    <<set _molarity = 0.1>>
+    <<set _CaCO3MolarMass = 100.086>>
+    <<set _NaMolarMass = 22.99>>
+    <<set _NO3MolarMass = 62.004>>
+
+    // Store moles of each solution in temporary variables
+    <<set _molesCaNO3 = _CaNO3.getVolume() * _molarity>>
+    <<set _molesNaCO3 = _NaCO3.getVolume() * _molarity>>
+
+    // Determine moles of precipitate using the limiting reactant, and split off the excess reactant into a temporary variable
+    <<if _molesCaNO3 > _molesNaCO3>>
+        <<set _molesCaCO3 = _molesNaCO3>>
+        <<set _reactedMoles = _molesNaCO3>>
+        <<set _reactedVolume = _NaCO3.getVolume()>>
+        <<set _excess = _CaNO3.splitOff(1 - (_molesNaCO3 / _molesCaNO3))>>
+    <<else>>
+        <<set _molesCaCO3 = _molesCaNO3>>
+        <<set _reactedMoles = _molesCaNO3>>
+        <<set _reactedVolume = _CaNO3.getVolume()>>
+        <<set _excess = _NaCO3.splitOff(1 - (_molesCaNO3 / _molesNaCO3))>>
+    <</if>>
+
+    // Create the precipitate
+    <<set _CaCO3 = Material("calciumCarbonate", _CaCO3MolarMass * _molesCaCO3, Infinity, true)>>
+
+    // Create the leftover ion solutions
+    <<set _NaIonMass = 2 * _reactedMoles * _NaMolarMass>>
+    <<set _NO3IonMass = 2 * _reactedMoles * _NO3MolarMass>>
+    <<set _NaIonSolution = Material("sodiumIonSolution", _reactedVolume, (1000 * _reactedVolume + _NaIonMass) / _reactedVolume)>>
+    <<set _NO3IonSolution = Material("nitrateIonSolution", _reactedVolume, (1000 * _reactedVolume + _NO3IonMass) / _reactedVolume)>>
+
+    // Add results to results array
+    <<set $results[0] = _CaCO3>>
+    <<set $results[1] = _excess>>
+    <<set $results[2] = _NaIonSolution>>
+    <<set $results[3] = _NO3IonSolution>>
+<</addRecipe>>

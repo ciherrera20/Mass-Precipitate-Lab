@@ -25,12 +25,15 @@ TFLAGS = --log-files -l -o $(PROJECT).html
 # (the default one in this case)
 #
 
-.PHONY : clean
+.PHONY : test, clean
 
 default : $(PROJECT).html
 
 $(PROJECT).html :
 	$(TC) $(TFLAGS) $(FROM)
+
+test: TFLAGS += -t
+test: $(PROJECT).html
 
 # To start over from scratch, type 'make clean'.  
 # Removes all .class files, so that the next make rebuilds them

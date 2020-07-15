@@ -8,16 +8,6 @@ Back to [[equipment]]
 <img src="./resources/images/calcium_nitrate_bottle.PNG" width="15%" height="15%">
 <br>
 
-Currently contains <<= $calciumNitrateBottle.volume>> ml of Calcium Nitrate
-<br>
-<<if !$vial1.containsCalciumNitrate>>
-    <<link "Pour 25 ml into Vial 1" vial1>><<run $calciumNitrateBottle.pourIntoVial($vial1)>><</link>>
-<<else>>
-    Vial 1 already contains calcium nitrate
-<</if>>
-<br>
-<<if !$vial2.containsCalciumNitrate>>
-    <<link "Pour 25 ml into Vial 2" vial2>><<run $calciumNitrateBottle.pourIntoVial($vial2)>><</link>>
-<<else>>
-    Vial 2 already contains calcium nitrate
-<</if>>
+Contains calcium nitrate<br>
+<<link "Pour 25 ml into vial 1" vial1>><<run $vial1.add(Material("calciumNitrate", 0.025, 1016.4))>><</link>><br>
+<<link "Pour 25 ml into vial 2" vial2>><<run $vial2.add(Material("calciumNitrate", 0.025, 1016.4))>><</link>><br>
