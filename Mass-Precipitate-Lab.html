@@ -794,6 +794,7 @@ const MaterialContainer = (function() {
             e.parent = this;
             e.materialAdded = material;
             this.dispatchEvent(LEvent("overflow", e));
+            return;
         }
 
         this.contents.push(material);
@@ -1129,7 +1130,7 @@ const MaterialManager = (function() {
 
             // If there are multiple of the same material, combine them, otherwise, just unwrap the array
             if (materials.length > 1) {
-                combineLike(materials);
+                result = combineLike(materials);
             } else {
                 result = materials[0];
             }
@@ -1203,6 +1204,8 @@ const MaterialManager = (function() {
                 return combined.combineLike(material);
             }
         });
+
+        console.log("Combine like result", result);
 
         return result;
     }
@@ -1291,14 +1294,20 @@ window.Material = Material;</script><tw-passagedata pid="1" name="StoryInit" tag
 
 &lt;&lt;container $vial1&gt;&gt;
     &lt;&lt;restMass `randomFloat(4.0, 6.0)`&gt;&gt;
-    &lt;&lt;capacity 60&gt;&gt;
+    &lt;&lt;capacity 0.09&gt;&gt;
     &lt;&lt;displayName &quot;vial1&quot;&gt;&gt;
+    &lt;&lt;on overflow&gt;&gt;
+        &lt;&lt;goto spill&gt;&gt;
+    &lt;&lt;/on&gt;&gt;
 &lt;&lt;/container&gt;&gt;
 
 &lt;&lt;container $vial2&gt;&gt;
     &lt;&lt;restMass `randomFloat(4.0, 6.0)`&gt;&gt;
-    &lt;&lt;capacity 60&gt;&gt;
+    &lt;&lt;capacity 0.09&gt;&gt;
     &lt;&lt;displayName &quot;vial2&quot;&gt;&gt;
+    &lt;&lt;on overflow&gt;&gt;
+        &lt;&lt;goto spill&gt;&gt;
+    &lt;&lt;/on&gt;&gt;
 &lt;&lt;/container&gt;&gt;
 
 &lt;&lt;container $watchGlass&gt;&gt;
@@ -1377,6 +1386,7 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
 
+Vial 1 has a capacity of &lt;&lt;print $vial2.capacity * 1000&gt;&gt; ml&lt;br&gt;
 &lt;&lt;if $vial1.has(&quot;calciumNitrate&quot;)&gt;&gt;
     Contains &lt;&lt;print $vial1.get(&quot;calciumNitrate&quot;).getVolume() * 1000&gt;&gt; ml of calcium nitrate&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
@@ -1416,6 +1426,7 @@ Back to [[equipment]]
 &lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
 &lt;br&gt;
 
+Vial 2 has a capacity of &lt;&lt;print $vial2.capacity * 1000&gt;&gt; ml&lt;br&gt;
 &lt;&lt;if $vial2.has(&quot;calciumNitrate&quot;)&gt;&gt;
     Contains &lt;&lt;print $vial1.get(&quot;calciumNitrate&quot;).getVolume()&gt;&gt; ml of calcium nitrate&lt;br&gt;
 &lt;&lt;/if&gt;&gt;
@@ -1516,7 +1527,14 @@ Welcome to the Mass Precipitate Lab! In this lab, you will measure the mass of t
 
 Back to [[introduction]]
 &lt;br&gt;
-&lt;iframe src=&quot;./resources/pdfs/Procedures.pdf&quot; width=&quot;100%&quot; height=&quot;1200px&quot;&gt;&lt;/iframe&gt;</tw-passagedata><tw-passagedata pid="11" name="submit" tags="nobr" position="100,225" size="100,100">&lt;h1&gt;Submit Lab&lt;/h1&gt;
+&lt;iframe src=&quot;./resources/pdfs/Procedures.pdf&quot; width=&quot;100%&quot; height=&quot;1200px&quot;&gt;&lt;/iframe&gt;</tw-passagedata><tw-passagedata pid="11" name="spill" tags="nobr" position="100,225" size="100,100">&lt;h1&gt;You spilled...&lt;/h1&gt;
+
+Uh oh! You overfilled a vial!&lt;br&gt;
+&lt;&lt;link &quot;Undo your mistake&quot;&gt;&gt;
+    &lt;&lt;script&gt;&gt;
+        SugarCube.Engine.backward();
+    &lt;&lt;/script&gt;&gt;
+&lt;&lt;/link&gt;&gt;</tw-passagedata><tw-passagedata pid="12" name="submit" tags="nobr" position="225,225" size="100,100">&lt;h1&gt;Submit Lab&lt;/h1&gt;
 
 Back to [[equipment]]</tw-passagedata></tw-storydata>
 	<script id="script-sugarcube" type="text/javascript">

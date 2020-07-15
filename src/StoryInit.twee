@@ -7,14 +7,20 @@
 
 <<container $vial1>>
     <<restMass `randomFloat(4.0, 6.0)`>>
-    <<capacity 60>>
+    <<capacity 0.09>>
     <<displayName "vial1">>
+    <<on overflow>>
+        <<goto spill>>
+    <</on>>
 <</container>>
 
 <<container $vial2>>
     <<restMass `randomFloat(4.0, 6.0)`>>
-    <<capacity 60>>
+    <<capacity 0.09>>
     <<displayName "vial2">>
+    <<on overflow>>
+        <<goto spill>>
+    <</on>>
 <</container>>
 
 <<container $watchGlass>>

@@ -8,6 +8,7 @@ Back to [[equipment]]
 <img src="./resources/images/vial.jpg" width="100px" height="100px">
 <br>
 
+Vial 2 has a capacity of <<print $vial2.capacity * 1000>> ml<br>
 <<if $vial2.has("calciumNitrate")>>
     Contains <<print $vial1.get("calciumNitrate").getVolume()>> ml of calcium nitrate<br>
 <</if>>
