@@ -204,44 +204,48 @@ const EventDispatcher = (function(){
     Macro.add("on", {
         tags: [],
         handler() {
-            if (this.parent === null) {
-                throw new Error("Parent macro context for 'on' macro cannot be null");
+            // Find first macro context whose first argument is an EventDispatcher
+            const eventContext = this.contextSelect(function(context) {
+                return context.args[0] && context.args[0].addEventListener === EventDispatcher.prototype.addEventListener;
+            });
+
+            // Make sure eventContext is not null
+            if (eventContext === null) {
+                throw new Error("'on' macro must have a parent context whose first argument is an instance of EventDispatcher");
             }
-            const parentObject = this.parent.args[0];
+            const parentObject = eventContext.args[0];
+
+            // Check if the instance of EventDispatcher has the given event name
             const eventName = String(this.args[0]);
-            const isJS = this.args[1] === "JS";
-            let that = this;
-            if (!parentObject.hasEvent) {
-                throw new Error("Parent object must be an EventDispatcher");
-            } else if (!parentObject.hasEvent(eventName)) {
-                throw new Error("Parent object does not have an event names " + eventName);
+            if (!parentObject.hasEvent(eventName)) {
+                throw new Error("Parent object does not have an event named " + eventName);
             }
 
+            // Create and add callback function
+            const that = this;
+            const isJS = this.args[1] === "JS";
             let callback;
             if (isJS) {
                 callback = Function("event", this.payload[0].contents);
             } else {
-                callback = function(event) {
-                    let tempEvent;
-                    that.createShadowWrapper(
-                        function callback() {
-                            jQuery.wiki(that.payload[0].contents);
-                        },
-                        function done() {
-                            if (tempEvent === undefined) {
-                                delete State.variables.event;
-                            } else {
-                                State.variables.event = tempEvent;
-                            }
-                        }, 
-                        function start() {
-                            tempEvent = State.variables.event;
-                            State.variables.event = event;
+                let content = this.payload[0].contents.trim();
+                if (content !== "") {
+                    this.addShadow("$event");
+                    callback = this.createShadowWrapper(function(event) {
+                        const eventCache = State.variables.event;
+                        State.variables.event = event;
+                        Wikifier.wikifyEval(content);
+                        if (eventCache !== undefined) {
+                            State.variables.event = eventCache;
+                        } else {
+                            delete State.variables.event;
                         }
-                    )();
+                    });
                 }
             }
-            parentObject.addEventListener(eventName, callback);
+            if (callback) {
+                parentObject.addEventListener(eventName, callback);
+            }
         }
     });
 
@@ -832,9 +836,14 @@ const MaterialContainer = (function() {
     return MaterialContainer;
 })();
 
-/*const GraduatedCylinder = (function() {
+const GraduatedCylinder = (function() {
+    const states = Object.create(null);
+    
     const populate = function(config) {
-
+        if (!states[this.getKey()]) {
+            const state = Object.create(null);
+            states[this.getKey()] = state;
+        }
     }
 
     const GraduatedCylinder = function(key) {
@@ -843,7 +852,7 @@ const MaterialContainer = (function() {
         }
     }
     GraduatedCylinder.inheritFrom(MaterialContainer);
-})();*/
+})();
 
 const Material = (function() {
     const populate = function(config) {
@@ -948,17 +957,40 @@ const MaterialManager = (function() {
     const multipleLabelMap = new WeakMap(); // A map whose keys are recipes with multiple labels
     const labelMap = Object.create(null); // An object whose keys are labels and whose values are arrays of recipes with that label
 
+    // Creates and returns a wrapper function for the given callback that validates the callback's given materials and results
+    const createSafetyWrapper = function(labels, callback) {
+        const wrapper = function(materials) {
+            labels.forEach(function(label, i) {
+                if (label !== materials[i].label) {
+                    throw new Error("The given material does not match the recipe's label!");
+                }
+            });
+            const results = callback(materials);
+            if (labels.length === 1) {
+                if (results.length > 1) {
+                    throw new Error("Multiple materials returned when only one was expected!");
+                }
+                if (labels[0].label === results[0].label) {
+                    throw new Error("A recipe with a single label must return a single material with that same label!");
+                }
+            }
+            return results;
+        }
+        return wrapper;
+    }
+
     /**
      * Creates a recipe used to combine materials
      * 
      * @param labels       A list of labels to label in order to operate the recipe on
-     * @param callback      A string, either javascript or SugarCube script, to evaluate
-     * @param isJS          Whether the callback is javascript or SugarCube script
+     * @param callback     A string, either javascript or SugarCube script, to evaluate
      */
-    const Recipe = function(labels, callback, isJS = false) {
+    const Recipe = function(labels, callback) {
         const labelsSeen = Object.create(null);
         labels.forEach(function(label) {
-            if (labelsSeen[label]) {
+            if (typeof label !== "string") {
+                throw new Error("All recipe labels must be strings!");
+            } else if (labelsSeen[label]) {
                 throw new Error("A recipe cannot match the same material more than once");
             } else {
                 labelsSeen[label] = true;
@@ -967,8 +999,7 @@ const MaterialManager = (function() {
 
         const recipe = Object.create(Recipe.prototype);
         recipe.labels = labels;
-        recipe.callback = callback;
-        recipe.isJS = isJS;
+        recipe.callback = createSafetyWrapper(labels, callback);
 
         if (recipe.labels.length === 1) {
             singleLabelRecipes.push(recipe);
@@ -986,17 +1017,19 @@ const MaterialManager = (function() {
 
         return recipe;
     }
-    
+
     Recipe.prototype.evaluate = function(materials) {
         return this.callback(clone(materials));
     }
 
+    /**
+     * Add a recipe to the material manager
+     * 
+     * @param labels            An array of material labels to match
+     * @param callback          A callback that processes the materials matched
+     */
     MaterialManager.addRecipe = function(labels, callback) {
-        const recipe = Recipe(labels, callback, false);
-    }
-
-    MaterialManager.addRecipeJS = function(labels, callback) {
-        const recipe = Recipe(labels, callback, true)
+        const recipe = Recipe(labels, callback);
     }
 
     /**
@@ -1080,6 +1113,13 @@ const MaterialManager = (function() {
         }
     }
 
+    /**
+     * Combines an array of like materials (matching labels)
+     * Attempts to find a single label rule to combine the materials
+     * If no rule is found, the function defaults to the Material.prototype.combineLike function
+     * 
+     * @param materials 
+     */
     const combineLike = function(materials) {
         // Find the first single label recipe that matches the label
         const label = materials[0].label;
@@ -1091,7 +1131,7 @@ const MaterialManager = (function() {
         }
 
         // If a recipe is found, use it to combine the matching material
-        // Otherwise, use the default combineLike function
+        // Otherwise, use the default Material.prototype.combineLike function
         const result = materials.reduce(function(combined, material) {
             if (recipe) {
                 return recipe.evaluate([combined, material])[0];
@@ -1105,75 +1145,46 @@ const MaterialManager = (function() {
         return result;
     }
 
-    // Creates and returns a wrapper function for the given callback that validates the callback's given materials and results
-    const createSafetyWrapper = function(labels, callback) {
-        labels.forEach(function(label) {
-            if (typeof label !== "string") {
-                throw new Error("All recipe labels must be strings!");
-            }
-        });
-        const wrapper = function(materials) {
-            labels.forEach(function(label, i) {
-                if (label !== materials[i].label) {
-                    throw new Error("The given material does not match the recipe's label!");
-                }
-            });
-            const results = callback(materials);
-            if (labels.length === 1) {
-                if (results.length > 1) {
-                    throw new Error("Multiple materials returned when only one was expected!");
-                }
-                if (labels[0].label === results[0].label) {
-                    throw new Error("A recipe with a single label must return a single material with that same label!");
-                }
-            }
-            return results;
-        }
-        return wrapper;
-    }
-
     // Add SugarCube interface for adding recipes
     Macro.add("addRecipe", {
         tags: [],
         handler() {
-            let that = this;
-            let args = this.args;
+            console.log(this);
+            const that = this;
+            const args = this.args;
             if (args[args.length - 1] === "JS") {
                 args.pop();
-                MaterialManager.addRecipeJS(args, createSafetyWrapper(args, Function("materials", this.payload[0].contents)));
+                MaterialManager.addRecipe(args, Function("materials", this.payload[0].contents));
             } else {
-                const callback = function(materials) {
-                    let tempMaterials;
-                    let tempResults;
-                    let results;
-                    that.createShadowWrapper(
-                        function callback() {
-                            jQuery.wiki(that.payload[0].contents);
-                            results = State.variables.results;
-                        },
-                        function done() {
-                            if (tempMaterials === undefined) {
-                                delete State.variables.materials;
-                            } else {
-                                State.variables.materials = tempMaterials;
-                            }
-                            if (tempResults === undefined) {
-                                delete State.variables.results;
-                            } else {
-                                State.variables.results = tempResults;
-                            }
-                        }, 
-                        function start() {
-                            tempMaterials = State.variables.materials;
-                            tempResults = State.variables.results;
-                            State.variables.materials = materials;
-                            State.variables.results = [];
+                const content = this.payload[0].contents.trim();
+                if (content !== "") {
+                    this.addShadow("$reactants", "$products");
+                    let reactantsCache;
+                    let productsCache;
+                    const shadowWrapped = this.createShadowWrapper(function(reactants) {
+                        reactantsCache = State.variables.reactants;
+                        productsCache = State.variables.products;
+                        State.variables.reactants = reactants;
+                        State.variables.products = [];
+                        Wikifier.wikifyEval(content);
+                    });
+                    const callback = function(reactants) {
+                        shadowWrapped(reactants);
+                        const products = State.variables.products;
+                        if (reactantsCache !== undefined) {
+                            State.variables.reactants = reactantsCache;
+                        } else {
+                            delete State.variables.reactants;
                         }
-                    )();
-                    return results;
+                        if (productsCache !== undefined) {
+                            State.variables.products = productsCache;
+                        } else {
+                            delete State.variables.products;
+                        }
+                        return products;
+                    }
+                    MaterialManager.addRecipe(args, callback);
                 }
-
-                MaterialManager.addRecipe(args, createSafetyWrapper(args, callback));
             }
         }
     });

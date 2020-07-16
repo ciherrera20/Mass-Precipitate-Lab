@@ -8,7 +8,7 @@
 <<container $vial1>>
     <<restMass `randomFloat(4.0, 6.0)`>>
     <<capacity 0.09>>
-    <<displayName "vial1">>
+    <<displayName "vial 1">>
     <<on overflow>>
         <<goto spill>>
     <</on>>
@@ -17,7 +17,7 @@
 <<container $vial2>>
     <<restMass `randomFloat(4.0, 6.0)`>>
     <<capacity 0.09>>
-    <<displayName "vial2">>
+    <<displayName "vial 2">>
     <<on overflow>>
         <<goto spill>>
     <</on>>
@@ -31,8 +31,8 @@
 // Create recipe to add together Calcium Nitrate and Sodium Carbonate using stoichiometry
 <<addRecipe calciumNitrate sodiumCarbonate>>
     // Store solutions in temporary variables
-    <<set _CaNO3 = $materials[0]>>
-    <<set _NaCO3 = $materials[1]>>
+    <<set _CaNO3 = $reactants[0]>>
+    <<set _NaCO3 = $reactants[1]>>
 
     // Constants
     <<set _molarity = 0.1>>
@@ -67,8 +67,8 @@
     <<set _NO3IonSolution = Material("nitrateIonSolution", _reactedVolume, (1000 * _reactedVolume + _NO3IonMass) / _reactedVolume)>>
 
     // Add results to results array
-    <<set $results[0] = _CaCO3>>
-    <<set $results[1] = _excess>>
-    <<set $results[2] = _NaIonSolution>>
-    <<set $results[3] = _NO3IonSolution>>
+    <<set $products[0] = _CaCO3>>
+    <<set $products[1] = _excess>>
+    <<set $products[2] = _NaIonSolution>>
+    <<set $products[3] = _NO3IonSolution>>
 <</addRecipe>>
