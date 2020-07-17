@@ -9,7 +9,7 @@
     <<restMass `randomFloat(4.0, 6.0)`>>
     <<capacity 0.09>>
     <<displayName "vial 1">>
-    <<on overflow>>
+    <<on "overflow">>
         <<goto spill>>
     <</on>>
 <</container>>
@@ -18,7 +18,7 @@
     <<restMass `randomFloat(4.0, 6.0)`>>
     <<capacity 0.09>>
     <<displayName "vial 2">>
-    <<on overflow>>
+    <<on "overflow">>
         <<goto spill>>
     <</on>>
 <</container>>

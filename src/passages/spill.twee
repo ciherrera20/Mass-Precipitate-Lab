@@ -3,8 +3,4 @@
 <h1>You spilled...</h1>
 
 Uh oh! You overfilled a vial!<br>
-<<link "Undo your mistake">>
-    <<script>>
-        SugarCube.Engine.backward();
-    <</script>>
-<</link>>
+<<return "Undo your mistake">>

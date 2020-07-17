@@ -14,12 +14,9 @@ Back to [[equipment]]
     Currently empty<br>
 <</if>>
 
-<<set _i = $balance.indexOf($watchGlass)>>
-<<if _i === -1>>
-    <<link "Place on balance" balance>><<run $balance.add($watchGlass)>><</link>>
-<<else>>
-    <<link "Remove from balance" watch_glass>><<run $balance.removeIndex(_i)>><</link>>
-<</if>>
+<<balance $balance>>
+    <<displayAddOption $watchGlass balance>>
+<</balance>>
 <br>
 <<if $watchGlass.contents.length !== 0>>
     <<link "Empty into sink" watch_glass>><<run $watchGlass.emptyInto()>><</link>>

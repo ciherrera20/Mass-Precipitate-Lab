@@ -29,12 +29,9 @@ Vial 2 has a capacity of <<print $vial2.capacity * 1000>> ml<br>
     Currently empty<br>
 <</if>>
 
-<<set _i = $balance.indexOf($vial2)>>
-<<if _i === -1>>
-    <<link "Place on balance" balance>><<run $balance.add($vial2)>><</link>>
-<<else>>
-    <<link "Remove from balance" vial1>><<run $balance.removeIndex(_i)>><</link>>
-<</if>>
+<<balance $balance>>
+    <<displayAddOption $vial2 balance>>
+<</balance>>
 <br>
 <<if $vial2.contents.length !== 0>>
     <<link "Empty into vial 1" vial1>><<run $vial2.emptyInto($vial1)>><</link>><br>
