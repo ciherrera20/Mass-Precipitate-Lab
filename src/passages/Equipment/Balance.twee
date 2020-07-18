@@ -10,4 +10,4 @@ Back to [[equipment]]
 
 <<balance $balance>><<displayContents>><</balance>>
 The balance currently reads <<balance $balance>><<displayMeasurement>><</balance>> grams<br>
-<<link "Zero balance">>$balance.zero()<</link>>
+<<link "Zero balance">><<run $balance.zero()>><</link>>

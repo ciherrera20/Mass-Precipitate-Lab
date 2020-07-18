@@ -9,5 +9,5 @@ Back to [[equipment]]
 <br>
 
 Contains sodium carbonate<br>
-<<link "Pour 25 ml into Vial 1" vial1>><<run $vial1.add(Material("sodiumCarbonate", 0.025, 1010.6))>><</link>><br>
-<<link "Pour 25 ml into Vial 2" vial2>><<run $vial2.add(Material("sodiumCarbonate", 0.025, 1010.6))>><</link>><br>
+<<link "Pour 25 ml into Vial 1" vial1>><<run $vial1.add(Material("sodiumCarbonate", 0.025))>><</link>><br>
+<<link "Pour 25 ml into Vial 2" vial2>><<run $vial2.add(Material("sodiumCarbonate", 0.025))>><</link>><br>

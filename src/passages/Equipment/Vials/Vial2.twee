@@ -10,16 +10,16 @@ Back to [[equipment]]
 
 Vial 2 has a capacity of <<print $vial2.capacity * 1000>> ml<br>
 <<if $vial2.has("calciumNitrate")>>
-    Contains <<print $vial2.get("calciumNitrate").getVolume() * 1000>> ml of calcium nitrate<br>
+    Contains <<print $vial2.get("calciumNitrate").volume * 1000>> ml of calcium nitrate<br>
 <</if>>
 <<if $vial2.has("sodiumCarbonate")>>
-    Contains <<print $vial2.get("sodiumCarbonate").getVolume() * 1000>> ml of sodium nitrate<br>
+    Contains <<print $vial2.get("sodiumCarbonate").volume * 1000>> ml of sodium nitrate<br>
 <</if>>
 <<if $vial2.has("sodiumIonSolution")>>
-    Contains <<print $vial2.get("sodiumIonSolution").getVolume() * 1000>> ml of sodium ion solution<br>
+    Contains <<print $vial2.get("sodiumIonSolution").volume * 1000>> ml of sodium ion solution<br>
 <</if>>
 <<if $vial2.has("nitrateIonSolution")>>
-    Contains <<print $vial2.get("nitrateIonSolution").getVolume() * 1000>> ml of nitrate ion solution<br>
+    Contains <<print $vial2.get("nitrateIonSolution").volume * 1000>> ml of nitrate ion solution<br>
 <</if>>
 <<if $vial2.has("calciumCarbonate")>>
     A calcium carbonate precipitate has formed!<br>
