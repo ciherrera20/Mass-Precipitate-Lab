@@ -5,7 +5,7 @@
 Back to [[equipment]]
 <br>
 
-<img src="./resources/images/balance.jpg">
+<img src="./resources/images/balance.jpg" style="height: 20vh">
 <br>
 
 <<balance $balance>><<displayContents>><</balance>>

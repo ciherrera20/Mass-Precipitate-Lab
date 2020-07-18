@@ -100,10 +100,69 @@ var saveAs=saveAs||navigator.msSaveBlob&&navigator.msSaveBlob.bind(navigator)||f
 		<div id="init-lacking">Your browser lacks required capabilities. Please upgrade it or switch to another to continue.</div>
 		<div id="init-loading"><div>Loading&hellip;</div></div>
 	</div>
-	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="9" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="debug" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">.in {
+	<!-- UUID://18AEC4EA-5935-4E60-B4D1-230085BA63D2// --><tw-storydata name="Mass Precipitate Lab" startnode="9" creator="Tweego" creator-version="2.1.1+81d1d71" ifid="18AEC4EA-5935-4E60-B4D1-230085BA63D2" zoom="1" format="SugarCube" format-version="2.30.0" options="" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">/* twine-user-stylesheet #1: "notepad.css" */
+#notepad {
+    height: 30vh;
+    padding: 0;
+    margin: 0;
+    margin-left: 17.5em;
+    transition: margin-left 200ms ease-in;
+    transition: height 200ms ease-in;
+    display: block;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    z-index: 50;
+}
+
+#notepad.notransition {
+    transition: none !important;
+}
+
+#ui-bar.stowed ~ #notepad {
+    margin-left: 2em;
+}
+
+#notepad_toggle {
+    width: 100%;
+    height: 35px;
+    padding: 0;
+    border: 0;
+    margin: 0;
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
+    background-color: #3b3b3b;
+}
+
+/*#notepad.stowed > #notepad_toggle {
+    background-color: red;
+}*/
+
+#notepad_toggle:hover {
+    cursor: n-resize;
+}
+
+#notepad_textarea {
+    width: 100%;
+    height: calc(100% - 35px);
+    padding: 5;
+    border: 0;
+    margin: 0;
+    display: block;
+    font-size: 1em;
+    resize: none;
+    color: black;
+    outline: none;
+    background-image: repeating-linear-gradient(#9cdfff, #9cdfff 0.5px, white 0px, white 30px);
+}
+/* twine-user-stylesheet #2: "story.css" */
+.in {
     text-indent: 2em;
     margin: 0px;
-}</style><script role="script" id="twine-user-script" type="text/twine-javascript">// Deep copies keys from the object from to the object to
+}</style><script role="script" id="twine-user-script" type="text/twine-javascript">/* twine-user-script #1: "labequipment.js" */
+// Deep copies keys from the object from to the object to
 const cloneKeys = function(from, to) {
 	Object.keys(from).forEach(function(key) {
 		to[key] = clone(from[key]);
@@ -882,7 +941,7 @@ const MaterialContainer = (function() {
         this.capacity = config.capacity || Infinity;
         this.volume = config.volume || 0;
         this.contentMass = config.contentMass || 0;
-        this.defineEvents(["materialadded", "materialremoved", "emptied", "overflow"]);
+        this.defineEvents(["materialadded", "materialremoved", "materialscombined", "emptied", "overflow"]);
     }
 
     const MaterialContainer = function(key, restMass) {
@@ -930,16 +989,22 @@ const MaterialContainer = (function() {
 
         this.contents.push(material);
 
+        {
+            const e = Object.create(null);
+            e.parent = this;
+            e.materialAdded = material;
+            this.dispatchEvent(LEvent("materialadded", e));
+        }
+
         const e = Object.create(null);
         e.parent = this;
-        e.materialAdded = material;
         e.previousVolume = this.volume;
         e.previousContents = this.contents;
 
         this.contents = MaterialManager.evaluateContents(clone(this.contents));
         updateMeasurements.call(this);
 
-        this.dispatchEvent(LEvent("materialadded", e));
+        this.dispatchEvent(LEvent("materialscombined", e));
     }
 
     MaterialContainer.prototype.indexOf = function(material) {
@@ -1082,15 +1147,16 @@ const MaterialDefinition = (function() {
     const definitions = new Map();
 
     const MaterialDefinition = function(name, intensiveProperties) {
-        if (!intensiveProperties.density) {
-            throw new Error("Material definition must include a density property");
-        }
-        if (!intensiveProperties.state) {
-            throw new Error("Material definition must include a state property");
-        }
         const definition = Object.create(null);
         definition.name = name;
         definition.intensiveProperties = intensiveProperties;
+        Object.defineProperties(definition, {
+            intProps: {
+                get() {
+                    return this.intensiveProperties;
+                }
+            }
+        });
         definitions.set(name, definition);
     }
 
@@ -1104,24 +1170,12 @@ const MaterialDefinition = (function() {
 
     Macro.add("defineMaterial", {
         handler() {
-            console.log("Defining material");
-            console.log(this);
             if (typeof this.args[0] !== "string") {
                 this.error("Missing material name.");
-            } else if (typeof this.args[1] !== "number") {
-                this.error("Missing material density.");
-            } else if (typeof this.args[2] !== "string") {
-                this.error("Missing material state.");
-            } else if (this.args[3] && typeof this.args[3] !== "object") {
+            } else if (this.args[1] && typeof this.args[1] !== "object") {
                 this.error("Additional intensive property argument must be an object.");
-            } else {
-                if (this.args[2] !== "solid" && this.args[2] !== "liquid") {
-                    this.error("Invalid material state. The supported material states are 'solid' and 'liquid'.");
-                }
             }
-            const intensiveProperties = this.args[3] || {};
-            intensiveProperties.density = this.args[1];
-            intensiveProperties.state = this.args[2];
+            const intensiveProperties = this.args[1] || {};
             MaterialDefinition(this.args[0], intensiveProperties);
         }
     });
@@ -1135,67 +1189,71 @@ const Material = (function() {
         const definition = MaterialDefinition.getDefinition(config.name);
         this.name = config.name;
         this.extensiveProperties = config.extensiveProperties;
+        this.attributes = config.attributes;
         Object.defineProperties(this, {
-            state: {
-                get() {
-                    return definition.intensiveProperties.state;
-                }
-            },
-            density: {
-                get() {
-                    return definition.intensiveProperties.density;
-                }
-            },
             intensiveProperties: {
                 get() {
                     return definition.intensiveProperties;
                 }
             },
-        });
-        if (definition.intensiveProperties.state === "solid") {
-            this.extensiveProperties.mass = config.amount;
-            Object.defineProperties(this, {
-                mass: {
-                    get() {
+            intProps: {
+                get() {
+                    return definition.intensiveProperties;
+                }
+            },
+            extProps: {
+                get() {
+                    return this.extensiveProperties;
+                }
+            },
+            mass: {
+                // Gets mass if the property exists. If only density and volume exist, return a calculated mass. If none exist, return 0
+                get() {
+                    if (this.extensiveProperties.mass) {
                         return this.extensiveProperties.mass;
-                    },
-                    set(newMass) {
-                        this.extensiveProperties.mass = newMass;
+                    } else if (this.extensiveProperties.volume && definition.intensiveProperties.density) {
+                        return this.extensiveProperties.volume * definition.intensiveProperties.density;
+                    } else {
+                        return 0;
                     }
                 },
-                volume: {
-                    get() {
-                        return this.extensiveProperties.mass / this.density;
-                    },
-                    set(newVolume) {
-                        this.extensiveProperties.mass = newVolume * this.density;
+                // Sets mass if the property exists. If only density and volume exist, set a calculated volume. If none exist, set mass
+                set(mass) {
+                    if (this.extensiveProperties.mass) {
+                        this.extensiveProperties.mass = mass;
+                    } else if (this.extensiveProperties.volume && definition.intensiveProperties.density) {
+                        this.extensiveProperties.volume = mass / definition.intensiveProperties.density;
+                    } else {
+                        this.extensiveProperties.mass = mass;
                     }
                 }
-            });
-        } else if (definition.intensiveProperties.state === "liquid") {
-            this.extensiveProperties.volume = config.amount;
-            Object.defineProperties(this, {
-                volume: {
-                    get() {
+            },
+            volume: {
+                // Gets volume if the property exists. If only density and mass exist, return a calculated volume. If none exist, return 0
+                get() {
+                    if (this.extensiveProperties.volume) {
                         return this.extensiveProperties.volume;
-                    },
-                    set(newVolume) {
-                        this.extensiveProperties.volume = newVolume;
+                    } else if (this.extensiveProperties.mass && definition.intensiveProperties.density) {
+                        return this.extensiveProperties.mass / definition.intensiveProperties.density;
+                    } else {
+                        return 0;
                     }
                 },
-                mass: {
-                    get() {
-                        return this.extensiveProperties.volume * this.density;
-                    },
-                    set(newMass) {
-                        this.extensiveProperties.volume = newMass / this.density;
+                // Sets volume if the property exists. If only density and mass exist, set a calculated mass. If none exist, set volume
+                set(volume) {
+                    if (this.extensiveProperties.volume) {
+                        this.extensiveProperties.volume = volume;
+                    } else if (this.extensiveProperties.volume && definition.intensiveProperties.density) {
+                        this.extensiveProperties.mass = volume * definition.intensiveProperties.density;
+                    } else {
+                        this.extensiveProperties.volume = volume;
                     }
                 }
-            });
-        }
+            }
+        });
     }
 
-    const Material = function(name, amount, extensiveProperties = Object.create(null)) {
+    const Material = function(name, extensiveProperties = Object.create(null), attributes = Object.create(null)) {
         if (!this) {
             const material = Object.create(Material.prototype);
             Material.call(material, ...arguments);
@@ -1205,35 +1263,30 @@ const Material = (function() {
 
         const config = Object.create(null);
         config.name = name;
-        config.amount = amount;
         config.extensiveProperties = extensiveProperties;
+        config.attributes = attributes;
         populate.call(this, config);
     }
     Material.inheritFrom(Cloneable);
     Cloneable.setupConstructor(Material, "Material");
 
     Material.prototype.splitOff = function(percentage) {
-        let newMaterial;
-        if (this.state === "solid") {
-            newMaterial = Material(this.name, this.mass * percentage, clone(this.extensiveProperties));
-            this.mass *= (1 - percentage);
-        } else if (this.state === "liquid") {
-            newMaterial = Material(this.name, this.volume * percentage, clone(this.extensiveProperties));
-            this.volume *= (1 - percentage);
-        }
-
+        const that = this;
+        const newMaterial = Material(this.name, clone(this.extensiveProperties), clone(this.attributes));
+        Object.keys(newMaterial.extensiveProperties).forEach(function(key) {
+            newMaterial.extensiveProperties[key] *= percentage;
+            that.extensiveProperties[key] *= (1 - percentage);
+        });
         return newMaterial;
     }
 
     Material.prototype.combineLike = function(material) {
+        const that = this;
         if (material.name === this.name) {
-            if (this.state === "solid") {
-                this.mass += material.mass;
-                material.mass = 0;
-            } else if (this.state === "liquid") {
-                this.volume += material.volume;
-                material.volume = 0;
-            }
+            Object.keys(material.extensiveProperties).forEach(function(key) {
+                that.extensiveProperties[key] += material.extensiveProperties[key];
+                material.extensiveProperties[key] = 0;
+            });
         }
         return this;
     }
@@ -1241,7 +1294,8 @@ const Material = (function() {
     Material.prototype.toObj = function() {
         const obj = {};
         obj.name = this.name;
-        obj.extensiveProperties = cloneKeys(this.extensiveProperties, {});
+        obj.extensiveProperties = this.extensiveProperties;
+        obj.attributes = this.attributes;
         return obj;
     }
 
@@ -1255,8 +1309,8 @@ const Material = (function() {
         
         const config = Object.create(null);
         config.name = obj.name;
-        config.amount = obj.extensiveProperties.mass || obj.extensiveProperties.volume;
-        config.extensiveProperties = obj.extensiveProperties;
+        config.extensiveProperties = clone(obj.extensiveProperties);
+        config.attributes = clone(obj.attributes);
         populate.call(this, config);
     }
 
@@ -1633,7 +1687,89 @@ window.Material = Material;
             });
         }
     });
-}());</script><tw-passagedata pid="1" name="StoryInit" tags="" position="100,100" size="100,100">&lt;&lt;balance $balance&gt;&gt;
+}());
+/* twine-user-script #2: "notepad.js" */
+const notepad = (function() {
+    const notepad = document.createElement("div");
+    notepad.id = "notepad";
+
+    const notepadToggle = document.createElement("button");
+    notepadToggle.id = "notepad_toggle";
+    notepadToggle.innerText = "Notes";
+
+    const notepadTextarea = document.createElement("textarea");
+    notepadTextarea.id = "notepad_textarea";
+    notepadTextarea.value = recall("notes") || "";
+
+    notepad.appendChild(notepadToggle);
+    notepad.appendChild(notepadTextarea);
+
+    const defaultHeight = window.innerHeight * 0.3;
+    let stowed = false;
+    let unstowedHeight = defaultHeight;
+
+    function stow() {
+        notepad.style.height = "35px";
+        stowed = true;
+        notepad.classList.add("stowed");
+    }
+
+    function unstow() {
+        notepad.style.height = unstowedHeight + "px";
+        stowed = false;
+        notepad.classList.remove("stowed");
+    }
+
+    function resize(e) {
+        if (!notepad.classList.contains("notransition")) {
+            notepad.classList.add("notransition");
+        }
+        if (stowed) {
+            unstow();
+        }
+        let newHeight = Math.min(Math.max(notepad.getBoundingClientRect().bottom - e.pageY, 35), window.innerHeight);
+        if (newHeight < 10) {
+            unstowedHeight = defaultHeight;
+            stow();
+        } else {
+            notepad.style.height = newHeight + "px";
+            unstowedHeight = Math.max(newHeight, defaultHeight);
+        }
+    }
+
+    function mouseup(e) {
+        if (notepad.classList.contains("notransition")) {
+            notepad.classList.remove("notransition");
+        } else {
+            if (stowed) {
+                unstow();
+            } else {
+                stow();
+            }
+        }
+        window.removeEventListener("mousemove", resize);
+        window.removeEventListener("mouseup", mouseup);
+    }
+
+    notepadToggle.addEventListener("mousedown", function(e) {
+        window.addEventListener("mousemove", resize);
+        window.addEventListener("mouseup", mouseup);
+    }, false);
+
+    document.body.appendChild(notepad);
+
+    window.addEventListener("beforeunload", function() {
+        memorize("notes", notepadTextarea.value);
+    });
+
+    $(document).on(":enginerestart", function() {
+        forget("notes");
+        notepadTextarea.value = "";
+    });
+
+    return notepad;
+})();
+window.notepad = notepad;</script><tw-passagedata pid="1" name="StoryInit" tags="" position="100,100" size="100,100">&lt;&lt;balance $balance&gt;&gt;
     &lt;&lt;singleItem true&gt;&gt;
     &lt;&lt;decimalPlaces 3&gt;&gt;
 &lt;&lt;/balance&gt;&gt;
@@ -1661,49 +1797,49 @@ window.Material = Material;
     &lt;&lt;displayName &quot;watch glass&quot;&gt;&gt;
 &lt;&lt;/container&gt;&gt;
 
-&lt;&lt;defineMaterial calciumNitrate 1016.4 liquid&gt;&gt;
-&lt;&lt;defineMaterial sodiumCarbonate 1010.6 liquid&gt;&gt;
-&lt;&lt;defineMaterial calciumCarbonate Infinity solid `{molarMass: 100.086}`&gt;&gt;
-&lt;&lt;defineMaterial sodiumIonSolution 1004.6 liquid `{molarMass: 22.99}`&gt;&gt;
-&lt;&lt;defineMaterial nitrateIonSolution 1012.4 liquid `{molarMass: 62.004}`&gt;&gt;
+&lt;&lt;defineMaterial calciumNitrate `{density: 1016.41, molarMass: 164.086}`&gt;&gt;
+&lt;&lt;defineMaterial sodiumCarbonate  `{density: 1010.6, molarMass: 105.988}`&gt;&gt;
+&lt;&lt;defineMaterial calciumCarbonate `{molarMass: 100.086}`&gt;&gt;
+&lt;&lt;defineMaterial sodiumIonSolution `{density: 1004.6, molarMass: 22.99}`&gt;&gt;
+&lt;&lt;defineMaterial nitrateIonSolution `{density: 1012.4, molarMass: 62.004}`&gt;&gt;
 
 // Create recipe to add together Calcium Nitrate and Sodium Carbonate using stoichiometry
 &lt;&lt;addRecipe calciumNitrate sodiumCarbonate&gt;&gt;
     // Store solutions in temporary variables
-    &lt;&lt;set _CaNO3 = $reactants[0]&gt;&gt;
-    &lt;&lt;set _NaCO3 = $reactants[1]&gt;&gt;
+    &lt;&lt;set _CaNO3_2 = $reactants[0]&gt;&gt;
+    &lt;&lt;set _Na2CO3 = $reactants[1]&gt;&gt;
 
     // Constants
     &lt;&lt;set _molarity = 0.1&gt;&gt;
-    &lt;&lt;set _CaCO3MolarMass = MaterialDefinition.getDefinition(&quot;calciumCarbonate&quot;).intensiveProperties.molarMass&gt;&gt;
-    &lt;&lt;set _NaMolarMass = MaterialDefinition.getDefinition(&quot;sodiumIonSolution&quot;).intensiveProperties.molarMass&gt;&gt;
-    &lt;&lt;set _NO3MolarMass = MaterialDefinition.getDefinition(&quot;nitrateIonSolution&quot;).intensiveProperties.molarMass&gt;&gt;
+    &lt;&lt;set _CaCO3MolarMass = MaterialDefinition.getDefinition(&quot;calciumCarbonate&quot;).intProps.molarMass&gt;&gt;
+    &lt;&lt;set _NaMolarMass = MaterialDefinition.getDefinition(&quot;sodiumIonSolution&quot;).intProps.molarMass&gt;&gt;
+    &lt;&lt;set _NO3MolarMass = MaterialDefinition.getDefinition(&quot;nitrateIonSolution&quot;).intProps.molarMass&gt;&gt;
 
     // Store moles of each solution in temporary variables
-    &lt;&lt;set _molesCaNO3 = _CaNO3.volume * _molarity&gt;&gt;
-    &lt;&lt;set _molesNaCO3 = _NaCO3.volume * _molarity&gt;&gt;
+    &lt;&lt;set _molesCaNO3_2 = _CaNO3_2.volume * _molarity&gt;&gt;
+    &lt;&lt;set _molesNa2CO3 = _Na2CO3.volume * _molarity&gt;&gt;
 
     // Determine moles of precipitate using the limiting reactant, and split off the excess reactant into a temporary variable
-    &lt;&lt;if _molesCaNO3 &gt; _molesNaCO3&gt;&gt;
-        &lt;&lt;set _molesCaCO3 = _molesNaCO3&gt;&gt;
-        &lt;&lt;set _reactedMoles = _molesNaCO3&gt;&gt;
-        &lt;&lt;set _reactedVolume = _NaCO3.volume&gt;&gt;
-        &lt;&lt;set _excess = _CaNO3.splitOff(1 - (_molesNaCO3 / _molesCaNO3))&gt;&gt;
+    &lt;&lt;if _molesCaNO3_2 &gt; _molesNa2CO3&gt;&gt;
+        &lt;&lt;set _molesCaCO3 = _molesNa2CO3&gt;&gt;
+        &lt;&lt;set _reactedMoles = _molesNa2CO3&gt;&gt;
+        &lt;&lt;set _reactedVolume = _Na2CO3.volume&gt;&gt;
+        &lt;&lt;set _excess = _CaNO3_2.splitOff(1 - (_molesNa2CO3 / _molesCaNO3_2))&gt;&gt;
     &lt;&lt;else&gt;&gt;
-        &lt;&lt;set _molesCaCO3 = _molesCaNO3&gt;&gt;
-        &lt;&lt;set _reactedMoles = _molesCaNO3&gt;&gt;
-        &lt;&lt;set _reactedVolume = _CaNO3.volume&gt;&gt;
-        &lt;&lt;set _excess = _NaCO3.splitOff(1 - (_molesCaNO3 / _molesNaCO3))&gt;&gt;
+        &lt;&lt;set _molesCaCO3 = _molesCaNO3_2&gt;&gt;
+        &lt;&lt;set _reactedMoles = _molesCaNO3_2&gt;&gt;
+        &lt;&lt;set _reactedVolume = _CaNO3_2.volume&gt;&gt;
+        &lt;&lt;set _excess = _Na2CO3.splitOff(1 - (_molesCaNO3_2 / _molesNa2CO3))&gt;&gt;
     &lt;&lt;/if&gt;&gt;
 
     // Create the precipitate
-    &lt;&lt;set _CaCO3 = Material(&quot;calciumCarbonate&quot;, _CaCO3MolarMass * _molesCaCO3)&gt;&gt;
+    &lt;&lt;set _CaCO3 = Material(&quot;calciumCarbonate&quot;, {mass: _CaCO3MolarMass * _molesCaCO3})&gt;&gt;
 
     // Create the leftover ion solutions
     &lt;&lt;set _NaIonMass = 2 * _reactedMoles * _NaMolarMass&gt;&gt;
     &lt;&lt;set _NO3IonMass = 2 * _reactedMoles * _NO3MolarMass&gt;&gt;
-    &lt;&lt;set _NaIonSolution = Material(&quot;sodiumIonSolution&quot;, _reactedVolume)&gt;&gt;
-    &lt;&lt;set _NO3IonSolution = Material(&quot;nitrateIonSolution&quot;, _reactedVolume)&gt;&gt;
+    &lt;&lt;set _NaIonSolution = Material(&quot;sodiumIonSolution&quot;, {volume: _reactedVolume})&gt;&gt;
+    &lt;&lt;set _NO3IonSolution = Material(&quot;nitrateIonSolution&quot;, {volume: _reactedVolume})&gt;&gt;
 
     // Add results to results array
     &lt;&lt;set $products[0] = _CaCO3&gt;&gt;
@@ -1715,27 +1851,27 @@ window.Material = Material;
 Back to [[equipment]]
 &lt;br&gt;
 
-&lt;img src=&quot;./resources/images/calcium_nitrate_bottle.PNG&quot; width=&quot;15%&quot; height=&quot;15%&quot;&gt;
+&lt;img src=&quot;./resources/images/calcium_nitrate_bottle.PNG&quot; style=&quot;height: 25vh&quot;&gt;
 &lt;br&gt;
 
 Contains calcium nitrate&lt;br&gt;
-&lt;&lt;link &quot;Pour 25 ml into vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial1.add(Material(&quot;calciumNitrate&quot;, 0.025))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
-&lt;&lt;link &quot;Pour 25 ml into vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial2.add(Material(&quot;calciumNitrate&quot;, 0.025))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;</tw-passagedata><tw-passagedata pid="3" name="sodium_carbonate" tags="nobr" position="350,100" size="100,100">&lt;h1&gt;Sodium Carbonate Bottle&lt;/h1&gt;
+&lt;&lt;link &quot;Pour 25 ml into vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial1.add(Material(&quot;calciumNitrate&quot;, {volume: 0.025}))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;link &quot;Pour 25 ml into vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial2.add(Material(&quot;calciumNitrate&quot;, {volume: 0.025}))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;</tw-passagedata><tw-passagedata pid="3" name="sodium_carbonate" tags="nobr" position="350,100" size="100,100">&lt;h1&gt;Sodium Carbonate Bottle&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
 
-&lt;img src=&quot;./resources/images/sodium_carbonate_bottle.PNG&quot; width=&quot;15%&quot; height=&quot;15%&quot;&gt;
+&lt;img src=&quot;./resources/images/sodium_carbonate_bottle.PNG&quot; style=&quot;height: 25vh&quot;&gt;
 &lt;br&gt;
 
 Contains sodium carbonate&lt;br&gt;
-&lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial1.add(Material(&quot;sodiumCarbonate&quot;, 0.025))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
-&lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial2.add(Material(&quot;sodiumCarbonate&quot;, 0.025))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;</tw-passagedata><tw-passagedata pid="4" name="vial1" tags="nobr" position="475,100" size="100,100">&lt;h1&gt;Vial 1&lt;/h1&gt;
+&lt;&lt;link &quot;Pour 25 ml into Vial 1&quot; vial1&gt;&gt;&lt;&lt;run $vial1.add(Material(&quot;sodiumCarbonate&quot;, {volume: 0.025}))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
+&lt;&lt;link &quot;Pour 25 ml into Vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial2.add(Material(&quot;sodiumCarbonate&quot;, {volume: 0.025}))&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;</tw-passagedata><tw-passagedata pid="4" name="vial1" tags="nobr" position="475,100" size="100,100">&lt;h1&gt;Vial 1&lt;/h1&gt;
 
 Back to [[equipment]]
 &lt;br&gt;
 
-&lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
+&lt;img src=&quot;./resources/images/vial.jpg&quot; style=&quot;height: 20vh&quot;&gt;
 &lt;br&gt;
 
 Vial 1 has a capacity of &lt;&lt;print $vial2.capacity * 1000&gt;&gt; ml&lt;br&gt;
@@ -1762,6 +1898,7 @@ Vial 1 has a capacity of &lt;&lt;print $vial2.capacity * 1000&gt;&gt; ml&lt;br&g
 &lt;&lt;balance $balance&gt;&gt;
     &lt;&lt;displayAddOption $vial1 balance&gt;&gt;
 &lt;&lt;/balance&gt;&gt;
+&lt;br&gt;
 &lt;&lt;if $vial1.contents.length !== 0&gt;&gt;
     &lt;&lt;link &quot;Empty into vial 2&quot; vial2&gt;&gt;&lt;&lt;run $vial1.emptyInto($vial2)&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
     &lt;&lt;link &quot;Empty into sink&quot; vial1&gt;&gt;&lt;&lt;run $vial1.emptyInto()&gt;&gt;&lt;&lt;/link&gt;&gt;&lt;br&gt;
@@ -1771,7 +1908,7 @@ Vial 1 has a capacity of &lt;&lt;print $vial2.capacity * 1000&gt;&gt; ml&lt;br&g
 Back to [[equipment]]
 &lt;br&gt;
 
-&lt;img src=&quot;./resources/images/vial.jpg&quot; width=&quot;100px&quot; height=&quot;100px&quot;&gt;
+&lt;img src=&quot;./resources/images/vial.jpg&quot; style=&quot;height: 20vh&quot;&gt;
 &lt;br&gt;
 
 Vial 2 has a capacity of &lt;&lt;print $vial2.capacity * 1000&gt;&gt; ml&lt;br&gt;
@@ -1829,7 +1966,7 @@ Back to [[equipment]]
 Back to [[equipment]]
 &lt;br&gt;
 
-&lt;img src=&quot;./resources/images/balance.jpg&quot;&gt;
+&lt;img src=&quot;./resources/images/balance.jpg&quot; style=&quot;height: 20vh&quot;&gt;
 &lt;br&gt;
 
 &lt;&lt;balance $balance&gt;&gt;&lt;&lt;displayContents&gt;&gt;&lt;&lt;/balance&gt;&gt;

@@ -28,49 +28,49 @@
     <<displayName "watch glass">>
 <</container>>
 
-<<defineMaterial calciumNitrate 1016.4 liquid>>
-<<defineMaterial sodiumCarbonate 1010.6 liquid>>
-<<defineMaterial calciumCarbonate Infinity solid `{molarMass: 100.086}`>>
-<<defineMaterial sodiumIonSolution 1004.6 liquid `{molarMass: 22.99}`>>
-<<defineMaterial nitrateIonSolution 1012.4 liquid `{molarMass: 62.004}`>>
+<<defineMaterial calciumNitrate `{density: 1016.41, molarMass: 164.086}`>>
+<<defineMaterial sodiumCarbonate  `{density: 1010.6, molarMass: 105.988}`>>
+<<defineMaterial calciumCarbonate `{molarMass: 100.086}`>>
+<<defineMaterial sodiumIonSolution `{density: 1004.6, molarMass: 22.99}`>>
+<<defineMaterial nitrateIonSolution `{density: 1012.4, molarMass: 62.004}`>>
 
 // Create recipe to add together Calcium Nitrate and Sodium Carbonate using stoichiometry
 <<addRecipe calciumNitrate sodiumCarbonate>>
     // Store solutions in temporary variables
-    <<set _CaNO3 = $reactants[0]>>
-    <<set _NaCO3 = $reactants[1]>>
+    <<set _CaNO3_2 = $reactants[0]>>
+    <<set _Na2CO3 = $reactants[1]>>
 
     // Constants
     <<set _molarity = 0.1>>
-    <<set _CaCO3MolarMass = MaterialDefinition.getDefinition("calciumCarbonate").intensiveProperties.molarMass>>
-    <<set _NaMolarMass = MaterialDefinition.getDefinition("sodiumIonSolution").intensiveProperties.molarMass>>
-    <<set _NO3MolarMass = MaterialDefinition.getDefinition("nitrateIonSolution").intensiveProperties.molarMass>>
+    <<set _CaCO3MolarMass = MaterialDefinition.getDefinition("calciumCarbonate").intProps.molarMass>>
+    <<set _NaMolarMass = MaterialDefinition.getDefinition("sodiumIonSolution").intProps.molarMass>>
+    <<set _NO3MolarMass = MaterialDefinition.getDefinition("nitrateIonSolution").intProps.molarMass>>
 
     // Store moles of each solution in temporary variables
-    <<set _molesCaNO3 = _CaNO3.volume * _molarity>>
-    <<set _molesNaCO3 = _NaCO3.volume * _molarity>>
+    <<set _molesCaNO3_2 = _CaNO3_2.volume * _molarity>>
+    <<set _molesNa2CO3 = _Na2CO3.volume * _molarity>>
 
     // Determine moles of precipitate using the limiting reactant, and split off the excess reactant into a temporary variable
-    <<if _molesCaNO3 > _molesNaCO3>>
-        <<set _molesCaCO3 = _molesNaCO3>>
-        <<set _reactedMoles = _molesNaCO3>>
-        <<set _reactedVolume = _NaCO3.volume>>
-        <<set _excess = _CaNO3.splitOff(1 - (_molesNaCO3 / _molesCaNO3))>>
+    <<if _molesCaNO3_2 > _molesNa2CO3>>
+        <<set _molesCaCO3 = _molesNa2CO3>>
+        <<set _reactedMoles = _molesNa2CO3>>
+        <<set _reactedVolume = _Na2CO3.volume>>
+        <<set _excess = _CaNO3_2.splitOff(1 - (_molesNa2CO3 / _molesCaNO3_2))>>
     <<else>>
-        <<set _molesCaCO3 = _molesCaNO3>>
-        <<set _reactedMoles = _molesCaNO3>>
-        <<set _reactedVolume = _CaNO3.volume>>
-        <<set _excess = _NaCO3.splitOff(1 - (_molesCaNO3 / _molesNaCO3))>>
+        <<set _molesCaCO3 = _molesCaNO3_2>>
+        <<set _reactedMoles = _molesCaNO3_2>>
+        <<set _reactedVolume = _CaNO3_2.volume>>
+        <<set _excess = _Na2CO3.splitOff(1 - (_molesCaNO3_2 / _molesNa2CO3))>>
     <</if>>
 
     // Create the precipitate
-    <<set _CaCO3 = Material("calciumCarbonate", _CaCO3MolarMass * _molesCaCO3)>>
+    <<set _CaCO3 = Material("calciumCarbonate", {mass: _CaCO3MolarMass * _molesCaCO3})>>
 
     // Create the leftover ion solutions
     <<set _NaIonMass = 2 * _reactedMoles * _NaMolarMass>>
     <<set _NO3IonMass = 2 * _reactedMoles * _NO3MolarMass>>
-    <<set _NaIonSolution = Material("sodiumIonSolution", _reactedVolume)>>
-    <<set _NO3IonSolution = Material("nitrateIonSolution", _reactedVolume)>>
+    <<set _NaIonSolution = Material("sodiumIonSolution", {volume: _reactedVolume})>>
+    <<set _NO3IonSolution = Material("nitrateIonSolution", {volume: _reactedVolume})>>
 
     // Add results to results array
     <<set $products[0] = _CaCO3>>

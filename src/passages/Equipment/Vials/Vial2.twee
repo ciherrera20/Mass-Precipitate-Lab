@@ -5,7 +5,7 @@
 Back to [[equipment]]
 <br>
 
-<img src="./resources/images/vial.jpg" width="100px" height="100px">
+<img src="./resources/images/vial.jpg" style="height: 20vh">
 <br>
 
 Vial 2 has a capacity of <<print $vial2.capacity * 1000>> ml<br>

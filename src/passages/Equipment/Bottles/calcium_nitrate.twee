@@ -5,9 +5,9 @@
 Back to [[equipment]]
 <br>
 
-<img src="./resources/images/calcium_nitrate_bottle.PNG" width="15%" height="15%">
+<img src="./resources/images/calcium_nitrate_bottle.PNG" style="height: 25vh">
 <br>
 
 Contains calcium nitrate<br>
-<<link "Pour 25 ml into vial 1" vial1>><<run $vial1.add(Material("calciumNitrate", 0.025))>><</link>><br>
-<<link "Pour 25 ml into vial 2" vial2>><<run $vial2.add(Material("calciumNitrate", 0.025))>><</link>><br>
+<<link "Pour 25 ml into vial 1" vial1>><<run $vial1.add(Material("calciumNitrate", {volume: 0.025}))>><</link>><br>
+<<link "Pour 25 ml into vial 2" vial2>><<run $vial2.add(Material("calciumNitrate", {volume: 0.025}))>><</link>><br>
