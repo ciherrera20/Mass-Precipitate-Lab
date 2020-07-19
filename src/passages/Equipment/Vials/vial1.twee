@@ -23,7 +23,12 @@ Vial 1 has a capacity of <<print $vial2.capacity * 1000>> ml<br>
 <</if>>
 <<if $vial1.has("calciumCarbonate")>>
     A calcium carbonate precipitate has formed!<br>
-    <<link "Place precipitate on watch glass" watch_glass>><<run $watchGlass.add($vial1.remove("calciumCarbonate"))>><</link>><br>
+    <<link "Place precipitate on watch glass" watch_glass>>
+        <<run $watchGlass.add($vial1.remove("calciumCarbonate"))>>
+        <<report>>
+            <<appendParagraph "Removed precipitate from vial 1 and placed it on watch glass">>
+        <</report>>
+    <</link>><br>
 <</if>>
 <<if $vial1.contents.length === 0>>
     Currently empty<br>

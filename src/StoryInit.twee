@@ -3,6 +3,21 @@
 <<balance $balance>>
     <<singleItem true>>
     <<decimalPlaces 3>>
+    <<on "zero">>
+        <<report>>
+            <<appendParagraph "Zeroed balance">>
+        <</report>>
+    <</on>>
+    <<on "itemadded">>
+        <<report>>
+            <<appendParagraph `"Added " + $event.itemAdded.displayName + " to balance"`>>
+        <</report>>
+    <</on>>
+    <<on "itemremoved">>
+        <<report>>
+            <<appendParagraph `"Removed " + $event.itemRemoved.displayName + " from balance"`>>
+        <</report>>
+    <</on>>
 <</balance>>
 
 <<container $vial1>>
@@ -11,6 +26,16 @@
     <<displayName "vial 1">>
     <<on "overflow">>
         <<goto spill>>
+    <</on>>
+    <<on "emptied">>
+        <<if $event.newContainer>>
+            <<set _into = $event.newContainer.displayName>>
+        <<else>>
+            <<set _into = "the sink">>
+        <</if>>
+        <<report>>
+            <<appendParagraph `"Vial 1 emptied into " + _into`>>
+        <</report>>
     <</on>>
 <</container>>
 
@@ -21,11 +46,26 @@
     <<on "overflow">>
         <<goto spill>>
     <</on>>
+    <<on "emptied">>
+        <<if $event.newContainer>>
+            <<set _into = $event.newContainer.displayName>>
+        <<else>>
+            <<set _into = "the sink">>
+        <</if>>
+        <<report>>
+            <<appendParagraph `"Vial 2 emptied into " + _into`>>
+        <</report>>
+    <</on>>
 <</container>>
 
 <<container $watchGlass>>
     <<restMass `Math.round(randomFloat(2.0, 3.0) * 100) / 100`>>
     <<displayName "watch glass">>
+    <<on "emptied">>
+        <<report>>
+            <<appendParagraph `"Watch glass emptied into sink"`>>
+        <</report>>
+    <</on>>
 <</container>>
 
 <<defineMaterial calciumNitrate `{density: 1016.41, molarMass: 164.086}`>>

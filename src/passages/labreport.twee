@@ -1,0 +1,8 @@
+:: labreport [nobr]
+
+<h1>Lab Report</h1>
+Back to [[equipment]]
+<br>
+<<report>>
+    <<displayPDF "70.71vh" "100vh">>
+<</report>>

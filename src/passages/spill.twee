@@ -4,3 +4,7 @@
 
 Uh oh! You overfilled a vial!<br>
 <<return "Undo your mistake">>
+
+<<report>>
+    <<appendHeader "Spill">>
+<</report>>
