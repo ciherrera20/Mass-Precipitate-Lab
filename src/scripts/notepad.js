@@ -24,12 +24,18 @@ const notepad = (function() {
     notepadToggle.appendChild(notepadLabel);
     notepad.appendChild(notepadTextarea);
 
+    const cssReady = new Promise(function(resolve, reject) {
+        $(document).ready(function() {
+            resolve();
+        });
+    });
+
     let offsetY = 0;
     let resizing = false;
 
     // Stow notes
     function stow() {
-        notepad.style.height = "35px";
+        notepad.style.height = getComputedStyle(notepad).getPropertyValue("--notepad-toggle-height");
         notepadData.stowed = true;
         notepad.classList.remove("unstowed");
         notepad.classList.add("stowed");
@@ -53,8 +59,9 @@ const notepad = (function() {
             unstow();
         }
         let pageY = e.type === "mousemove" ? e.pageY : e.touches[0].pageY;
-        let newHeight = Math.min(Math.max(notepad.getBoundingClientRect().bottom - pageY + offsetY, 35), window.innerHeight);
-        if (newHeight < 45) {
+        let notepadToggleHeight = parseInt(getComputedStyle(notepad).getPropertyValue("--notepad-toggle-height"));
+        let newHeight = Math.min(Math.max(notepad.getBoundingClientRect().bottom - pageY + offsetY, notepadToggleHeight), window.innerHeight);
+        if (newHeight < notepadToggleHeight + 10) {
             notepadData.unstowedHeight = defaultHeight;
             stow();
         } else {
@@ -108,7 +115,7 @@ const notepad = (function() {
         // Handle default notepad properties
         notepadTextarea.value = notepadData.contents;
         if (notepadData.stowed) {
-            stow();
+            cssReady.then(stow);
         } else {
             unstow();
             notepad.style.height = notepadData.unstowedHeight + "px";
@@ -125,10 +132,11 @@ const notepad = (function() {
     });
 
     $(document).on(":enginerestart", function() {
+        console.log("Engine restart");
         forget("notepadData");
         notepadTextarea.value = "";
         notepadData.unstowedHeight = defaultHeight;
-        stow();
+        notepadData.stowed = true;
     });
 
     const onSaveCache = Config.saves.onSave;
@@ -165,3 +173,5 @@ const notepad = (function() {
 
     return notepad;
 })();
+
+window.notepad = notepad;
