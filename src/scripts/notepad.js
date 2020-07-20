@@ -1,6 +1,6 @@
 const notepad = (function() {
     const defaultHeight = window.innerHeight * 0.3;
-    const notepadData = recall("notepadData") || {contents: "", stowed: true, unstowedHeight: defaultHeight};
+    let notepadData = recall("notepadData") || {contents: "", stowed: true, unstowedHeight: defaultHeight};
 
     const notepad = document.createElement("div");
     notepad.id = "notepad";
@@ -18,7 +18,6 @@ const notepad = (function() {
 
     const notepadTextarea = document.createElement("textarea");
     notepadTextarea.id = "notepad_textarea";
-    notepadTextarea.value = notepadData.contents;
 
     notepad.appendChild(notepadArrow);
     notepad.appendChild(notepadToggle);
@@ -35,12 +34,6 @@ const notepad = (function() {
         notepad.classList.remove("unstowed");
         notepad.classList.add("stowed");
     }
-    // Handle default stow and default height
-    if (notepadData.stowed) {
-        stow();
-    } else {
-        notepad.style.height = notepadData.unstowedHeight + "px";
-    }
 
     // Unstow notes
     function unstow() {
@@ -52,7 +45,7 @@ const notepad = (function() {
 
     // Handle mousemove and touchmove events to resize notes
     function resize(e) {
-        console.log(e.type);
+        //console.log(e.type);
         if (!notepad.classList.contains("notransition")) {
             notepad.classList.add("notransition");
         }
@@ -73,7 +66,7 @@ const notepad = (function() {
 
     // Handle mouseup and touchend events to remove mousemove, touchmove, mouseup, and touchend event listeners
     function mouseup(e) {
-        console.log(e.type);
+        //console.log(e.type);
         if (notepad.classList.contains("notransition")) {
             notepad.classList.remove("notransition");
         } else {
@@ -95,7 +88,7 @@ const notepad = (function() {
 
     // Handle mousedown and touchstart events to add mousemove, touchmove, mouseup, and touchend event listeners
     function mousedown(e) {
-        console.log(e.type);
+        //console.log(e.type);
         if (e.type === "mousedown") {
             offsetY = e.offsetY;
             window.addEventListener("mousemove", resize);
@@ -111,8 +104,21 @@ const notepad = (function() {
     notepadToggle.addEventListener("mousedown", mousedown);
     notepadToggle.addEventListener("touchstart", mousedown);
 
+    function init() {
+        // Handle default notepad properties
+        notepadTextarea.value = notepadData.contents;
+        if (notepadData.stowed) {
+            stow();
+        } else {
+            unstow();
+            notepad.style.height = notepadData.unstowedHeight + "px";
+        }
+    }
+    init();
+
     document.body.appendChild(notepad);
 
+    // Save callbacks
     window.addEventListener("beforeunload", function() {
         notepadData.contents = notepadTextarea.value;
         memorize("notepadData", notepadData);
@@ -124,6 +130,31 @@ const notepad = (function() {
         notepadData.unstowedHeight = defaultHeight;
         stow();
     });
+
+    const onSaveCache = Config.saves.onSave;
+    Config.saves.onSave = function(save) {
+        if (!save.metadata) {
+            save.metadata = {};
+        }
+        notepadData.contents = notepadTextarea.value;
+        save.metadata.notepadData = notepadData;
+        console.log(save);
+        if (typeof onSaveCache === "function") {
+            return onSaveCache(save);
+        }
+    }
+
+    const onLoadCache = Config.saves.onLoad;
+    Config.saves.onLoad = function(save) {
+        console.log(save);
+        if (save.metadata.notepadData) {
+            notepadData = save.metadata.notepadData
+            init();
+        }
+        if (typeof onLoadCache === "function") {
+            return onLoadCache(save);
+        }
+    }
 
     notepad.getNotes = function() {
         return notepadTextarea.value;
