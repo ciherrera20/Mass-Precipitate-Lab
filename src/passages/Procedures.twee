@@ -4,4 +4,4 @@
 
 Back to [[introduction]]
 <br>
-<iframe src="./resources/pdfs/Procedures.pdf" style="width: 70.71vh; height: 100vh"></iframe>
+<div class="pdfcontainer"><iframe class="pdf" src="./resources/pdfs/Procedures.pdf"></iframe></div>

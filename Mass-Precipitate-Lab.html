@@ -190,7 +190,22 @@ var saveAs=saveAs||navigator.msSaveBlob&&navigator.msSaveBlob.bind(navigator)||f
 #notepad_textarea::-webkit-scrollbar-thumb {
     background: #888;
 }
-/* twine-user-stylesheet #2: "story.css" */
+/* twine-user-stylesheet #2: "pdfcontainer.css" */
+.pdfcontainer {
+    width: 100%;
+    height: 0;
+    padding-top: calc(11 / 8.5 * 100%);
+    position: relative;
+}
+
+.pdfviewer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+/* twine-user-stylesheet #3: "story.css" */
 .in {
     text-indent: 2em;
     margin: 0px;
@@ -1935,12 +1950,17 @@ const labreport = (function() {
                         append(`<br>`);
                     }
                 } else if (chunk.name === "displayPDF") {
-                    const iframe = document.createElement("iframe");
+                    const pdfContainer = document.createElement("div");
+                    pdfContainer.classList.add("pdfcontainer");
+
+                    const pdfViewer = document.createElement("iframe");
                     labreport.toPDF().then(function(pdf) {
-                        iframe.src = URL.createObjectURL(pdf.output("blob", "labreport"));
+                        pdfViewer.src = URL.createObjectURL(pdf.output("blob", "labreport"));
                     });
-                    iframe.style = `width: ${chunk.args[0]}; height: ${chunk.args[1]}`;
-                    jQuery(that.output).append(iframe);
+                    pdfViewer.classList.add("pdfviewer");
+
+                    pdfContainer.appendChild(pdfViewer);
+                    jQuery(that.output).append(pdfContainer);
                 }
                 jQuery(that.output).wiki(chunk.contents);
             });
@@ -2423,7 +2443,7 @@ Back to [[equipment]]
 
 Back to [[introduction]]
 &lt;br&gt;
-&lt;iframe src=&quot;./resources/pdfs/Procedures.pdf&quot; style=&quot;width: 70.71vh; height: 100vh&quot;&gt;&lt;/iframe&gt;</tw-passagedata><tw-passagedata pid="12" name="spill" tags="nobr" position="225,225" size="100,100">&lt;h1&gt;You spilled...&lt;/h1&gt;
+&lt;div class=&quot;pdfcontainer&quot;&gt;&lt;iframe class=&quot;pdf&quot; src=&quot;./resources/pdfs/Procedures.pdf&quot;&gt;&lt;/iframe&gt;&lt;/div&gt;</tw-passagedata><tw-passagedata pid="12" name="spill" tags="nobr" position="225,225" size="100,100">&lt;h1&gt;You spilled...&lt;/h1&gt;
 
 Uh oh! You overfilled a vial!&lt;br&gt;
 &lt;&lt;return &quot;Undo your mistake&quot;&gt;&gt;
