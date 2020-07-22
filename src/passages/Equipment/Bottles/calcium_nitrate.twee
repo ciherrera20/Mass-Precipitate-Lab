@@ -9,7 +9,7 @@ Back to [[equipment]]
 <br>
 
 Contains calcium nitrate<br>
-<<link "Pour 25 ml into vial 1" vial1>>
+/*<<link "Pour 25 ml into vial 1" vial1>>
     <<run $vial1.add(Material("calciumNitrate", {volume: 0.025}))>>
     <<report>>
         <<appendParagraph "Poured 25 ml of calcium nitrate into vial 1">>
@@ -20,4 +20,11 @@ Contains calcium nitrate<br>
     <<report>>
         <<appendParagraph "Poured 25 ml of calcium nitrate into vial 2">>
     <</report>>
-<</link>><br>
+<</link>><br>*/
+<<container $vial1>>
+    <<displayAddOption `Material("calcium nitrate", {volume: 0.025})` vial1 "Pour 25 ml into vial 1">>
+<</container>>
+<br>
+<<container $vial2>>
+    <<displayAddOption `Material("calcium nitrate", {volume: 0.025})` vial2 "Pour 25 ml into vial 2">>
+<</container>>

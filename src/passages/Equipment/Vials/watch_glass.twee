@@ -8,17 +8,11 @@ Back to [[equipment]]
 <img src="./resources/images/watch_glass.jpg" width="15%" height="15%">
 <br>
 
-<<if $watchGlass.has("calciumCarbonate")>>
-    Contains solid calcium carbonate<br>
-<<elseif $watchGlass.contents.length === 0>>
-    Currently empty<br>
-<</if>>
+<<container $watchGlass>>
+    <<displayMaterial calciumCarbonate "Contains solid calcium carbonate<br>">>
+    <<displayEmpty "Currently empty<br>" "Empty into sink<br>" discard>>
+<</container>>
 
 <<balance $balance>>
     <<displayAddOption $watchGlass balance>>
 <</balance>>
-<br>
-<<if $watchGlass.contents.length !== 0>>
-    <<link "Empty into sink" watch_glass>><<run $watchGlass.emptyInto()>><</link>>
-<</if>>
-<br>

@@ -8,6 +8,8 @@ Back to [[equipment]]
 <img src="./resources/images/balance.jpg" style="height: 20vh">
 <br>
 
-<<balance $balance>><<displayContents>><</balance>>
-The balance currently reads <<balance $balance>><<displayMeasurement>><</balance>> grams<br>
+<<balance $balance>>
+    <<displayContents "The balance has on it:<br>" "There is nothing on the balance">>
+    <<displayMeasurement "The balance currently reads $mass$ grams<br>">>
+<</balance>>
 <<link "Zero balance">><<run $balance.zero()>><</link>>

@@ -1,6 +1,7 @@
 :: StoryInit
 
 <<balance $balance>>
+    <<name "balance">>
     <<singleItem true>>
     <<decimalPlaces 3>>
     <<on "zero">>
@@ -10,81 +11,92 @@
     <</on>>
     <<on "itemadded">>
         <<report>>
-            <<appendParagraph `"Added " + $event.itemAdded.displayName + " to balance"`>>
+            <<appendParagraph `"Added " + $event.itemAdded.name + " to balance"`>>
         <</report>>
     <</on>>
     <<on "itemremoved">>
         <<report>>
-            <<appendParagraph `"Removed " + $event.itemRemoved.displayName + " from balance"`>>
+            <<appendParagraph `"Removed " + $event.itemRemoved.name + " from balance"`>>
         <</report>>
     <</on>>
 <</balance>>
 
-<<container $vial1>>
-    <<restMass `randomFloat(4.0, 6.0)`>>
-    <<capacity 0.09>>
-    <<displayName "vial 1">>
-    <<on "overflow">>
-        <<goto spill>>
-    <</on>>
-    <<on "emptied">>
-        <<if $event.newContainer>>
-            <<set _into = $event.newContainer.displayName>>
-        <<else>>
-            <<set _into = "the sink">>
-        <</if>>
-        <<report>>
-            <<appendParagraph `"Vial 1 emptied into " + _into`>>
-        <</report>>
-    <</on>>
-<</container>>
+<<callback "reportEmptied">>
+    <<if $event.newContainer>>
+        <<set _into = $event.newContainer.name>>
+    <<else>>
+        <<set _into = "sink">>
+    <</if>>
+    <<report>>
+        <<appendParagraph `"Contents of " + $event.parent.name + " emptied into " + _into`>>
+    <</report>>
+<</callback>>
 
-<<container $vial2>>
-    <<restMass `randomFloat(4.0, 6.0)`>>
-    <<capacity 0.09>>
-    <<displayName "vial 2">>
-    <<on "overflow">>
-        <<goto spill>>
-    <</on>>
-    <<on "emptied">>
-        <<if $event.newContainer>>
-            <<set _into = $event.newContainer.displayName>>
-        <<else>>
-            <<set _into = "the sink">>
-        <</if>>
+<<callback "reportPrecipitateRemoved">>
+    <<if $event.materialRemoved.name === "calcium carbonate">>
         <<report>>
-            <<appendParagraph `"Vial 2 emptied into " + _into`>>
+            <<appendParagraph `"Removed precipitate from " + $event.parent.name + " and placed it on watch glass"`>>
         <</report>>
-    <</on>>
-<</container>>
+    <</if>>
+<</callback>>
+
+<<callback "reportMaterialAdded">>
+    <<if $event.materialAdded.name === "calcium nitrate">>
+        <<report>>
+            <<appendParagraph `"Poured 25 ml of calcium nitrate into " + $event.parent.name`>>
+        <</report>>
+    <<elseif $event.materialAdded.name === "sodium carbonate">>
+        <<report>>
+            <<appendParagraph `"Poured 25 ml of sodium carbonate into " + $event.parent.name`>>
+        <</report>>
+    <</if>>
+<</callback>>
+
+<<for _i = 1; _i < 3; _i++>>
+    <<container `"$vial" + _i`>>
+        <<name `"vial " + _i`>>
+        <<restMass `randomFloat(4.0, 6.0)`>>
+        <<capacity 0.09>>
+        <<on "overflow">>
+            <<goto spill>>
+        <</on>>
+        <<on "emptied">>
+            <<trigger "reportEmptied">>
+        <</on>>
+        <<on "materialremoved">>
+            <<trigger "reportPrecipitateRemoved">>
+        <</on>>
+        <<on "materialadded">>
+            <<trigger "reportMaterialAdded">>
+        <</on>>
+    <</container>>
+<</for>>
 
 <<container $watchGlass>>
+    <<name "watch glass">>
     <<restMass `Math.round(randomFloat(2.0, 3.0) * 100) / 100`>>
-    <<displayName "watch glass">>
     <<on "emptied">>
-        <<report>>
-            <<appendParagraph `"Watch glass emptied into sink"`>>
-        <</report>>
+        <<trigger "reportEmptied" $event>>
     <</on>>
 <</container>>
 
-<<defineMaterial calciumNitrate `{density: 1016.41, molarMass: 164.086}`>>
-<<defineMaterial sodiumCarbonate  `{density: 1010.6, molarMass: 105.988}`>>
-<<defineMaterial calciumCarbonate `{molarMass: 100.086}`>>
-<<defineMaterial sodiumIonSolution `{density: 1004.6, molarMass: 22.99}`>>
-<<defineMaterial nitrateIonSolution `{density: 1012.4, molarMass: 62.004}`>>
+<<defineMaterial "calcium nitrate" `{density: 1016.41, molarMass: 164.086}`>>
+<<defineMaterial "sodium carbonate"  `{density: 1010.6, molarMass: 105.988}`>>
+<<defineMaterial "calcium carbonate" `{molarMass: 100.086}`>>
+<<defineMaterial "sodium ion solution" `{density: 1004.6, molarMass: 22.99}`>>
+<<defineMaterial "nitrate ion solution" `{density: 1012.4, molarMass: 62.004}`>>
 
 // Create recipe to add together Calcium Nitrate and Sodium Carbonate using stoichiometry
-<<addRecipe calciumNitrate sodiumCarbonate>>
+<<addRecipe "calcium nitrate" "sodium carbonate">>
     // Store solutions in temporary variables
     <<set _CaNO3_2 = $reactants[0]>>
     <<set _Na2CO3 = $reactants[1]>>
 
     // Constants
     <<set _molarity = 0.1>>
-    <<set _CaCO3MolarMass = MaterialDefinition.getDefinition("calciumCarbonate").intProps.molarMass>>
-    <<set _NaMolarMass = MaterialDefinition.getDefinition("sodiumIonSolution").intProps.molarMass>>
-    <<set _NO3MolarMass = MaterialDefinition.getDefinition("nitrateIonSolution").intProps.molarMass>>
+    <<set _CaCO3MolarMass = MaterialDefinition.getDefinition("calcium carbonate").intProps.molarMass>>
+    <<set _NaMolarMass = MaterialDefinition.getDefinition("sodium ion solution").intProps.molarMass>>
+    <<set _NO3MolarMass = MaterialDefinition.getDefinition("nitrate ion solution").intProps.molarMass>>
 
     // Store moles of each solution in temporary variables
     <<set _molesCaNO3_2 = _CaNO3_2.volume * _molarity>>
@@ -104,13 +116,13 @@
     <</if>>
 
     // Create the precipitate
-    <<set _CaCO3 = Material("calciumCarbonate", {mass: _CaCO3MolarMass * _molesCaCO3})>>
+    <<set _CaCO3 = Material("calcium carbonate", {mass: _CaCO3MolarMass * _molesCaCO3})>>
 
     // Create the leftover ion solutions
     <<set _NaIonMass = 2 * _reactedMoles * _NaMolarMass>>
     <<set _NO3IonMass = 2 * _reactedMoles * _NO3MolarMass>>
-    <<set _NaIonSolution = Material("sodiumIonSolution", {volume: _reactedVolume})>>
-    <<set _NO3IonSolution = Material("nitrateIonSolution", {volume: _reactedVolume})>>
+    <<set _NaIonSolution = Material("sodium ion solution", {volume: _reactedVolume})>>
+    <<set _NO3IonSolution = Material("nitrate ion solution", {volume: _reactedVolume})>>
 
     // Add results to results array
     <<set $products[0] = _CaCO3>>

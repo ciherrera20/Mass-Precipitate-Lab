@@ -9,37 +9,18 @@ Back to [[equipment]]
 <br>
 
 Vial 2 has a capacity of <<print $vial2.capacity * 1000>> ml<br>
-<<if $vial2.has("calciumNitrate")>>
-    Contains <<print $vial2.get("calciumNitrate").volume * 1000>> ml of calcium nitrate<br>
-<</if>>
-<<if $vial2.has("sodiumCarbonate")>>
-    Contains <<print $vial2.get("sodiumCarbonate").volume * 1000>> ml of sodium nitrate<br>
-<</if>>
-<<if $vial2.has("sodiumIonSolution")>>
-    Contains <<print $vial2.get("sodiumIonSolution").volume * 1000>> ml of sodium ion solution<br>
-<</if>>
-<<if $vial2.has("nitrateIonSolution")>>
-    Contains <<print $vial2.get("nitrateIonSolution").volume * 1000>> ml of nitrate ion solution<br>
-<</if>>
-<<if $vial2.has("calciumCarbonate")>>
-    A calcium carbonate precipitate has formed!<br>
-    <<link "Place precipitate on watch glass" watch_glass>>
-        <<run $watchGlass.add($vial2.remove("calciumCarbonate"))>>
-        <<report>>
-            <<appendParagraph "Removed precipitate from vial 1 and placed it on watch glass">>
-        <</report>>
-    <</link>><br>
-<</if>>
-<<if $vial2.contents.length === 0>>
-    Currently empty<br>
-<</if>>
+
+<<container $vial2>>
+    <<displayMaterial "calcium nitrate" "Contains <<print $volume$ * 1000>> ml of calcium nitrate<br>">>
+    <<displayMaterial "sodium carbonate" "Contains <<print $volume$ * 1000>> ml of sodium carbonate<br>">>
+    <<displayMaterial "sodium ion solution" "Contains <<print $volume$ * 1000>> ml of sodium ion solution<br>">>
+    <<displayMaterial "nitrate ion solution" "Contains <<print $volume$ * 1000>> ml of nitrate ion solution<br>">>
+    <<displayMaterial "calcium carbonate" "A calcium carbonate precipitate has formed!<br>">>
+    <<displayRemoveOption "calcium carbonate" $watchGlass watch_glass "Place precipitate on watch glass<br>">>
+    <<displayEmpty "Currently empty<br>" "Empty into vial 1<br>" $vial1 "vial1">>
+    <<displayEmpty "" "Empty into sink<br>" discard>>
+<</container>>
 
 <<balance $balance>>
     <<displayAddOption $vial2 balance>>
 <</balance>>
-<br>
-<<if $vial2.contents.length !== 0>>
-    <<link "Empty into vial 1" vial1>><<run $vial2.emptyInto($vial1)>><</link>><br>
-    <<link "Empty into sink" vial2>><<run $vial2.emptyInto()>><</link>><br>
-<</if>>
-<br>
